@@ -17,9 +17,8 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class UserServiceImpl implements UserService{
+public class UserServiceImpl implements UserService {
     private final UserDao userRepository;
-    private final String CORRECT_EMAIL_REGEXP = "\\S.*@\\S.*\\..*";
 
     @Override
     public UserDto addUser(UserDto userDto) {
@@ -89,7 +88,7 @@ public class UserServiceImpl implements UserService{
         if (userDto.getEmail() == null) {
             throw new ValidationException("Email information empty.");
         }
-        if (!userDto.getEmail().matches(CORRECT_EMAIL_REGEXP)) {
+        if (!userDto.getEmail().matches("\\S.*@\\S.*\\..*")) {
             throw new ValidationException("Incorrect email");
         }
     }
@@ -106,7 +105,7 @@ public class UserServiceImpl implements UserService{
 
     private boolean checkIsEmailValid(String email) {
         if (email != null) {
-            if (!email.matches(CORRECT_EMAIL_REGEXP)) {
+            if (!email.matches("\\S.*@\\S.*\\..*")) {
                 throw new ValidationException("Incorrect email");
             }
             return true;

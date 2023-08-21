@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 @Repository
 @RequiredArgsConstructor
 @Slf4j
-public class InMemoryUserDao implements UserDao{
+public class InMemoryUserDao implements UserDao {
     private final HashMap<Long, User> users;
     private long idCounter = 1;
 
