@@ -14,7 +14,5 @@ public interface UserDao {
 
     List<User> getAllUsers();
 
-    boolean isEmailAvailable(String email);
-
     void deleteUser(long userId);
 }

@@ -5,46 +5,36 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
 import ru.practicum.shareit.item.model.Item;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Repository
 @RequiredArgsConstructor
 @Slf4j
 public class InMemoryItemDao implements ItemDao {
-    private final HashMap<Long, Item> items;
+    private final Map<Long, Item> items = new HashMap<>();
     private long itemIdCounter = 1;
 
     @Override
     public Item addNewItem(Item item) {
         log.debug("Received item to add as new one.");
-
         long newItemId = generateId();
-
         item.setItemId(newItemId);
-
         items.put(newItemId, item);
-
         log.debug("New item with id {} added successfully.", newItemId);
-
-        return getItemById(newItemId).get();
+        return item;
     }
 
     @Override
     public Item updateItem(Item item) {
         log.debug("Received updated item with id {}.", item.getItemId());
-
         items.put(item.getItemId(), item);
-
-        return getItemById(item.getItemId()).get();
+        return item;
     }
 
     @Override
     public Optional<Item> getItemById(long id) {
         log.debug("Received request to get item with id {}", id);
-
         return Optional.ofNullable(items.get(id));
     }
 
@@ -60,10 +50,10 @@ public class InMemoryItemDao implements ItemDao {
     @Override
     public List<Item> searchInDescription(String text) {
         log.debug("Received request to search items which description contains text \"{}\"", text);
-
+String toUpperCaseText = text.toUpperCase(Locale.ROOT);
         return items.values().stream()
-                .filter(Item::isAvailable)
-                .filter(item -> item.getDescription().toUpperCase().contains(text.toUpperCase()))
+                .filter(item -> item.isAvailable()
+                        && item.getDescription().toUpperCase(Locale.ROOT).contains(toUpperCaseText))
                 .collect(Collectors.toList());
     }
 

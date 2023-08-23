@@ -2,6 +2,7 @@ package ru.practicum.shareit.exception;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -10,35 +11,29 @@ import ru.practicum.shareit.exception.model.ErrorResponse;
 import ru.practicum.shareit.exception.model.NotFoundException;
 import ru.practicum.shareit.exception.model.ValidationException;
 
-import static org.springframework.http.HttpStatus.*;
+import javax.validation.ConstraintViolationException;
+
 @RestControllerAdvice
 @Slf4j
 public class ErrorHandler {
-    @ExceptionHandler
-    @ResponseStatus(NOT_FOUND)
-    public ErrorResponse errorResponse(NotFoundException e) {
-        log.debug("Returning {} answer with message: {}", NOT_FOUND, e.getMessage());
-        return new ErrorResponse(NOT_FOUND.toString(), e.getMessage());
+    @ExceptionHandler({MethodArgumentNotValidException.class,
+            ConstraintViolationException.class, ValidationException.class,
+           IllegalStateException.class})
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse validationExceptionHandler(final RuntimeException e) {
+        return new ErrorResponse(e.getMessage());
     }
 
-    @ExceptionHandler
-    @ResponseStatus(BAD_REQUEST)
-    public ErrorResponse errorResponse(ValidationException e) {
-        log.debug("Returning {} answer with message: {}", BAD_REQUEST, e.getMessage());
-        return new ErrorResponse(BAD_REQUEST.toString(), e.getMessage());
+    @ExceptionHandler(NotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ErrorResponse notFoundExceptionHandler(final NotFoundException e) {
+        return new ErrorResponse(e.getMessage());
     }
 
-    @ExceptionHandler
-    @ResponseStatus(CONFLICT)
-    public ErrorResponse errorResponse(AlreadyUsedException e) {
-        log.debug("Returning {} answer with message: {}", CONFLICT, e.getMessage());
-        return new ErrorResponse(CONFLICT.toString(), e.getMessage());
+    @ExceptionHandler(AlreadyUsedException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ErrorResponse conflictExceptionHandler(final AlreadyUsedException e) {
+        return new ErrorResponse(e.getMessage());
     }
 
-    @ExceptionHandler
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ErrorResponse errorResponse(Throwable e) {
-        log.debug("Returning {} answer with message: {}", INTERNAL_SERVER_ERROR, e.getMessage());
-        return new ErrorResponse(INTERNAL_SERVER_ERROR.toString(), e.getMessage());
-    }
 }

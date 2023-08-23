@@ -1,10 +1,15 @@
 package ru.practicum.shareit.item.mapper;
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+import lombok.experimental.UtilityClass;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.model.Item;
 
+@UtilityClass
+//@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class ItemMapper {
-    public static Item convertToItem(long ownerId, ItemDto itemDto) {
+    public Item convertToItem(long ownerId, ItemDto itemDto) {
         return Item.builder()
                 .itemId(itemDto.getId())
                 .ownerId(ownerId)
@@ -14,7 +19,7 @@ public class ItemMapper {
                 .build();
     }
 
-    public static ItemDto convertToDto(Item item) {
+    public ItemDto convertToDto(Item item) {
         return ItemDto.builder()
                 .id(item.getItemId())
                 .name(item.getName())

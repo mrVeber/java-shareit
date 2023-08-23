@@ -11,7 +11,6 @@ import ru.practicum.shareit.item.mapper.ItemMapper;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.service.UserService;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -28,12 +27,12 @@ public class ItemServiceImpl implements ItemService {
         checkIsItemAvailable(itemDto);
         userService.checkIsUserPresent(userId);
 
-        Item item = convertToItem(userId, itemDto);
+        Item item = ItemMapper.convertToItem(userId, itemDto);
 
         log.debug("Sending to DAO item to create with name {} and description {} from user {}.",
                 item.getName(), item.getDescription(), userId);
 
-        return convertToDto(itemRepository.addNewItem(item));
+        return ItemMapper.convertToDto(itemRepository.addNewItem(item));
     }
 
     @Override
@@ -46,7 +45,6 @@ public class ItemServiceImpl implements ItemService {
         if (item.getOwnerId() != userId) {
             throw new NotFoundException("Information about this user's item absent.");
         }
-
         if (itemDto.getName() != null) {
             item.setName(itemDto.getName());
         }
@@ -58,7 +56,6 @@ public class ItemServiceImpl implements ItemService {
         }
 
         log.debug("Sending to DAO updated item");
-        itemRepository.updateItem(item);
 
         return getItemDtoById(itemId);
     }
@@ -67,7 +64,7 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public ItemDto getItemDtoById(long itemId) {
         log.debug("Sending to DAO request to get item with id {}.", itemId);
-        return convertToDto(itemRepository.getItemById(itemId)
+        return ItemMapper.convertToDto(itemRepository.getItemById(itemId)
                 .orElseThrow(() -> new NotFoundException("Item with id " + itemId + " does not present in repository.")));
     }
 
@@ -88,7 +85,7 @@ public class ItemServiceImpl implements ItemService {
     public List<ItemDto> searchInDescription(String text) {
         log.debug("Sending to DAO request to search items by text \"{}\".", text);
         if (text.isBlank()) {
-            return new ArrayList<>();
+            return List.of();
         }
         List<Item> items = itemRepository.searchInDescription(text);
 
@@ -99,7 +96,6 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public void deleteUserItems(long userId) {
-        //проверка наличия пользователя отсутствует потому что метод вызывается после удаления пользователя
         log.debug("Sending to DAO request to delete user id {} items.", userId);
         itemRepository.deleteUserItems(userId);
     }
@@ -123,14 +119,6 @@ public class ItemServiceImpl implements ItemService {
         log.debug("Sending to DAO request to get item with id {}.", itemId);
         return itemRepository.getItemById(itemId)
                 .orElseThrow(() -> new NotFoundException("Item with id " + itemId + " does not present in repository."));
-    }
-
-    private ItemDto convertToDto(Item item) {
-        return ItemMapper.convertToDto(item);
-    }
-
-    private Item convertToItem(long userId, ItemDto itemDto) {
-        return ItemMapper.convertToItem(userId, itemDto);
     }
 
     private void checkIsItemPresent(long itemId) {

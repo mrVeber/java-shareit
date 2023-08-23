@@ -19,17 +19,18 @@ import java.util.stream.Collectors;
 @Slf4j
 public class UserServiceImpl implements UserService {
     private final UserDao userRepository;
+    private final String emailRegexp = "\\S.*@\\S.*\\..*";
 
     @Override
     public UserDto addUser(UserDto userDto) {
         checkIsUserValid(userDto);
-        checkIsEmailAvailable(userDto.getEmail());
-
-        User user = convertToUser(userDto);
+        if (!isEmailAvailable(userDto.getEmail())) {
+            throw new AlreadyUsedException("Email already used.");
+        }
 
         log.debug("Sending to DAO information to add new user.");
 
-        return convertToDto(userRepository.addUser(user));
+        return UserMapper.convertToDto(userRepository.addUser(UserMapper.convertToUser(userDto)));
     }
 
     @Override
@@ -37,15 +38,17 @@ public class UserServiceImpl implements UserService {
         checkIsUserPresent(userId);
         User user = getUserById(userId);
         if (userDto.getEmail() != null && !userDto.getEmail().equals(user.getEmail())) {
-            checkIsEmailAvailable(userDto.getEmail());
-            checkIsEmailValid(userDto.getEmail());
+
+            if (!isEmailAvailable(userDto.getEmail())) {
+                throw new AlreadyUsedException("Email already used.");
+            }
             user.setEmail(userDto.getEmail());
         }
-        if (userDto.getName() != null) {
+        if (userDto.getName() != null && !userDto.getName().isBlank()) {
             user.setName(userDto.getName());
         }
         log.debug("Sending to DAO updated user {} information.", userId);
-        return convertToDto(userRepository.updateUser(user));
+        return UserMapper.convertToDto(userRepository.updateUser(user));
     }
 
     @Override
@@ -53,7 +56,7 @@ public class UserServiceImpl implements UserService {
         log.debug("Sending to DAO request to get all users.");
 
         return userRepository.getAllUsers().stream()
-                .map(this::convertToDto)
+                .map(UserMapper::convertToDto)
                 .collect(Collectors.toList());
     }
 
@@ -61,9 +64,8 @@ public class UserServiceImpl implements UserService {
     public UserDto getUserDtoById(long userId) {
         log.debug("Sending to DAO request to get user with id {}.", userId);
 
-        return convertToDto(userRepository.getUserById(userId)
+        return UserMapper.convertToDto(userRepository.getUserById(userId)
                 .orElseThrow(() -> new NotFoundException("User with id " + userId + " does not present in repository.")));
-
     }
 
     @Override
@@ -88,34 +90,8 @@ public class UserServiceImpl implements UserService {
         if (userDto.getEmail() == null) {
             throw new ValidationException("Email information empty.");
         }
-        if (!userDto.getEmail().matches("\\S.*@\\S.*\\..*")) {
+        if (!userDto.getEmail().matches(emailRegexp)) {
             throw new ValidationException("Incorrect email");
-        }
-    }
-
-    private boolean checkNameForUpdating(UserDto userDto) {
-        if (userDto.getName() != null) {
-            if (userDto.getName().isBlank()) {
-                throw new ValidationException("Name is blank");
-            }
-            return true;
-        }
-        return false;
-    }
-
-    private boolean checkIsEmailValid(String email) {
-        if (email != null) {
-            if (!email.matches("\\S.*@\\S.*\\..*")) {
-                throw new ValidationException("Incorrect email");
-            }
-            return true;
-        }
-        return false;
-    }
-
-    private void checkIsEmailAvailable(String email) {
-        if (!userRepository.isEmailAvailable(email)) {
-            throw new AlreadyUsedException("Email already used.");
         }
     }
 
@@ -124,11 +100,11 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new NotFoundException("User with id " + userId + " does not present in repository."));
     }
 
-    private User convertToUser(UserDto userDto) {
-        return UserMapper.convertToUser(userDto);
-    }
+    public boolean isEmailAvailable(String email) {
+        List<String> emails = userRepository.getAllUsers().stream()
+                .map(User::getEmail)
+                .collect(Collectors.toList());
 
-    private UserDto convertToDto(User user) {
-        return UserMapper.convertToDto(user);
+        return !emails.contains(email);
     }
 }

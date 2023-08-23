@@ -5,17 +5,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
 import ru.practicum.shareit.user.model.User;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.*;
 
 @Repository
 @RequiredArgsConstructor
 @Slf4j
 public class InMemoryUserDao implements UserDao {
-    private final HashMap<Long, User> users;
+    private final Map<Long, User> users;
     private long idCounter = 1;
 
     @Override
@@ -27,7 +23,7 @@ public class InMemoryUserDao implements UserDao {
         users.put(newUserId, user);
 
         log.debug("New user with id {} added successfully.", newUserId);
-        return users.get(newUserId);
+        return user;
     }
 
     @Override
@@ -37,7 +33,7 @@ public class InMemoryUserDao implements UserDao {
         users.put(user.getId(), user);
 
         log.debug("User with id {} name updates successfully.", user.getId());
-        return users.get(user.getId());
+        return user;
     }
 
     @Override
@@ -50,15 +46,6 @@ public class InMemoryUserDao implements UserDao {
     public List<User> getAllUsers() {
         log.debug("Received request to get all users.");
         return new ArrayList<>(users.values());
-    }
-
-    @Override
-    public boolean isEmailAvailable(String email) {
-        List<String> emails = users.values().stream()
-                .map(User::getEmail)
-                .collect(Collectors.toList());
-
-        return !emails.contains(email);
     }
 
     @Override
