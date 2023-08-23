@@ -23,8 +23,6 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public ItemDto addItem(long userId, ItemDto itemDto) {
-        checkItemDtoValidation(itemDto);
-        checkIsItemAvailable(itemDto);
         userService.checkIsUserPresent(userId);
 
         Item item = ItemMapper.convertToItem(userId, itemDto);
@@ -45,10 +43,10 @@ public class ItemServiceImpl implements ItemService {
         if (item.getOwnerId() != userId) {
             throw new NotFoundException("Information about this user's item absent.");
         }
-        if (itemDto.getName() != null) {
+        if (itemDto.getName() != null && !itemDto.getName().isBlank()) {
             item.setName(itemDto.getName());
         }
-        if (itemDto.getDescription() != null) {
+        if (itemDto.getDescription() != null && !itemDto.getDescription().isBlank()) {
             item.setDescription(itemDto.getDescription());
         }
         if (itemDto.getAvailable() != null) {
@@ -57,7 +55,7 @@ public class ItemServiceImpl implements ItemService {
 
         log.debug("Sending to DAO updated item");
 
-        return getItemDtoById(itemId);
+        return ItemMapper.convertToDto(item);
     }
 
 
@@ -98,21 +96,6 @@ public class ItemServiceImpl implements ItemService {
     public void deleteUserItems(long userId) {
         log.debug("Sending to DAO request to delete user id {} items.", userId);
         itemRepository.deleteUserItems(userId);
-    }
-
-    private void checkItemDtoValidation(ItemDto itemDto) {
-        if (itemDto.getName() == null || itemDto.getName().isBlank()) {
-            throw new ValidationException("Name is blank.");
-        }
-        if (itemDto.getDescription() == null || itemDto.getDescription().isBlank()) {
-            throw new ValidationException("Description is blank.");
-        }
-    }
-
-    private void checkIsItemAvailable(ItemDto itemDto) {
-        if (itemDto.getAvailable() == null || !itemDto.getAvailable()) {
-            throw new ValidationException("Item is not available.");
-        }
     }
 
     private Item getItemById(long itemId) {

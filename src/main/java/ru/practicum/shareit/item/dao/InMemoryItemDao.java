@@ -50,7 +50,7 @@ public class InMemoryItemDao implements ItemDao {
     @Override
     public List<Item> searchInDescription(String text) {
         log.debug("Received request to search items which description contains text \"{}\"", text);
-String toUpperCaseText = text.toUpperCase(Locale.ROOT);
+        String toUpperCaseText = text.toUpperCase(Locale.ROOT);
         return items.values().stream()
                 .filter(item -> item.isAvailable()
                         && item.getDescription().toUpperCase(Locale.ROOT).contains(toUpperCaseText))

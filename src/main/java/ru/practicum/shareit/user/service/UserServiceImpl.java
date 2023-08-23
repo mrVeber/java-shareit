@@ -5,7 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.practicum.shareit.exception.model.AlreadyUsedException;
 import ru.practicum.shareit.exception.model.NotFoundException;
-import ru.practicum.shareit.exception.model.ValidationException;
 import ru.practicum.shareit.user.dao.UserDao;
 import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.mapper.UserMapper;
@@ -19,17 +18,13 @@ import java.util.stream.Collectors;
 @Slf4j
 public class UserServiceImpl implements UserService {
     private final UserDao userRepository;
-    private final String emailRegexp = "\\S.*@\\S.*\\..*";
 
     @Override
     public UserDto addUser(UserDto userDto) {
-        checkIsUserValid(userDto);
         if (!isEmailAvailable(userDto.getEmail())) {
             throw new AlreadyUsedException("Email already used.");
         }
-
         log.debug("Sending to DAO information to add new user.");
-
         return UserMapper.convertToDto(userRepository.addUser(UserMapper.convertToUser(userDto)));
     }
 
@@ -37,8 +32,7 @@ public class UserServiceImpl implements UserService {
     public UserDto updateUser(long userId, UserDto userDto) {
         checkIsUserPresent(userId);
         User user = getUserById(userId);
-        if (userDto.getEmail() != null && !userDto.getEmail().equals(user.getEmail())) {
-
+        if (userDto.getEmail() != null && !userDto.getEmail().equals(user.getEmail()) && !userDto.getEmail().isEmpty()) {
             if (!isEmailAvailable(userDto.getEmail())) {
                 throw new AlreadyUsedException("Email already used.");
             }
@@ -81,18 +75,6 @@ public class UserServiceImpl implements UserService {
         log.debug("Sending to DAO request to delete user with id {}.", userId);
 
         userRepository.deleteUser(userId);
-    }
-
-    private void checkIsUserValid(UserDto userDto) {
-        if (userDto.getName() == null || userDto.getName().isBlank()) {
-            throw new ValidationException("Name is blank");
-        }
-        if (userDto.getEmail() == null) {
-            throw new ValidationException("Email information empty.");
-        }
-        if (!userDto.getEmail().matches(emailRegexp)) {
-            throw new ValidationException("Incorrect email");
-        }
     }
 
     private User getUserById(long userId) {

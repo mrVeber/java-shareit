@@ -21,12 +21,12 @@ public class UserController {
     @PostMapping
     public UserDto addUser(@Validated(Create.class) @RequestBody UserDto userDto) {
         log.debug("Received request to add new user.");
-
         return userService.addUser(userDto);
     }
 
     @PatchMapping("/{userId}")
-    public UserDto updateUser(@Validated(Update.class) @PathVariable(value = "userId") long userId,
+    public UserDto updateUser(@PathVariable(value = "userId") long userId,
+                              @Validated(Update.class)
                               @RequestBody UserDto userDto) {
         log.debug("Received request to update existed information about user with id {}.", userId);
 

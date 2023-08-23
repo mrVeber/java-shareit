@@ -21,18 +21,28 @@ public class ErrorHandler {
            IllegalStateException.class})
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorResponse validationExceptionHandler(final RuntimeException e) {
+        log.debug("Получен BAD_REQUEST {}", e.getMessage(), e);
         return new ErrorResponse(e.getMessage());
     }
 
     @ExceptionHandler(NotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ErrorResponse notFoundExceptionHandler(final NotFoundException e) {
+        log.debug("Получен NOT_FOUND {}", e.getMessage(), e);
         return new ErrorResponse(e.getMessage());
     }
 
     @ExceptionHandler(AlreadyUsedException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
     public ErrorResponse conflictExceptionHandler(final AlreadyUsedException e) {
+        log.debug("Получен CONFLICT {}", e.getMessage(), e);
+        return new ErrorResponse(e.getMessage());
+    }
+
+    @ExceptionHandler
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ErrorResponse handle(Throwable e) {
+        log.debug("Непредвиденная ошибка сервера {}", e.getMessage(), e);
         return new ErrorResponse(e.getMessage());
     }
 
