@@ -1,13 +1,10 @@
 package ru.practicum.shareit.item.mapper;
 
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
 import lombok.experimental.UtilityClass;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.model.Item;
 
 @UtilityClass
-//@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class ItemMapper {
     public Item convertToItem(long ownerId, ItemDto itemDto) {
         return Item.builder()
