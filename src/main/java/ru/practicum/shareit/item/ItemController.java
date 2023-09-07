@@ -17,11 +17,10 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ItemController {
     private final ItemService service;
-    private final String XSharerUserId = "X-Sharer-User-Id";
 
     @PostMapping
     public ItemDto create(
-            @RequestHeader(XSharerUserId) long userId,
+            @RequestHeader("X-Sharer-User-Id") long userId,
             @Validated(Create.class) @RequestBody StandardItemDto itemDto) {
         log.info("Выполнен запрос POST /items.");
         return service.create(userId, itemDto);
@@ -30,23 +29,24 @@ public class ItemController {
     @PatchMapping("/{itemId}")
     public ItemDto update(
             @PathVariable long itemId,
-            @RequestHeader(XSharerUserId) long userId,
+            @RequestHeader("X-Sharer-User-Id") long userId,
             @Validated(Update.class) @RequestBody StandardItemDto itemDto) {
         log.info("Выполнен запрос PATCH /items/{}.", itemId);
         return service.update(itemId, userId, itemDto);
     }
 
     @GetMapping("/{itemId}")
-    public ItemDto get(@PathVariable long itemId, @RequestHeader(XSharerUserId) long ownerId) {
+    public ItemDto get(@PathVariable long itemId, @RequestHeader("X-Sharer-User-Id") long ownerId) {
         log.info("Выполнен запрос GET /items/{}.", itemId);
         return service.getItemIdByOwnerId(itemId, ownerId);
     }
 
     @GetMapping
-    public List<ItemDto> get(@RequestHeader(XSharerUserId) long userId) {
+    public List<ItemDto> get(@RequestHeader("X-Sharer-User-Id") long userId) {
         log.info("Выполнен запрос GET /items.");
         return service.get(userId);
     }
+
     @GetMapping("/search")
     public List<ItemDto> search(@RequestParam(required = false, name = "text", defaultValue = "") String text) {
         log.info("Выполнен запрос GET /items/search?text={}.", text);

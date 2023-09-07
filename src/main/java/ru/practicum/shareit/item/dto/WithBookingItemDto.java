@@ -8,7 +8,7 @@ import java.util.List;
 
 @Data
 @Builder
-public class WithBookingItemDto implements ItemDto{
+public class WithBookingItemDto implements ItemDto {
     private long id;
     private String name;
     private String description;

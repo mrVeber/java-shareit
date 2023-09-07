@@ -17,26 +17,31 @@ import java.util.List;
 @RequiredArgsConstructor
 public class UserController {
     private final UserService service;
+
     @PostMapping
     public UserDto create(@Validated(Create.class) @RequestBody UserDto user) {
         log.info("Выполнен запрос POST /users.");
         return service.create(user);
     }
+
     @PatchMapping("/{userId}")
     public UserDto update(@PathVariable long userId, @Validated(Update.class) @RequestBody UserDto user) {
         log.info("Выполнен запрос PATCH /users/{}.", userId);
         return service.update(userId, user);
     }
+
     @GetMapping("/{userId}")
     public UserDto get(@PathVariable long userId) {
         log.info("Выполнен запрос GET /users/{}.", userId);
         return service.get(userId);
     }
+
     @DeleteMapping("/{userId}")
     public void delete(@PathVariable long userId) {
         log.info("Выполнен запрос DELETE /users/{}.", userId);
         service.delete(userId);
     }
+
     @GetMapping
     public List<UserDto> get() {
         log.info("Выполнен запрос GET /users.");

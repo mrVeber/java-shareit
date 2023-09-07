@@ -21,11 +21,10 @@ import java.util.List;
 public class BookingController {
 
     private final BookingService service;
-    private final String XSharerUserId = "X-Sharer-User-Id";
 
     @PostMapping
     public BookingDto create(
-            @RequestHeader(XSharerUserId) long userId,
+            @RequestHeader("X-Sharer-User-Id") long userId,
             @Validated(Create.class) @RequestBody BookingRequestDto createBookingDto) {
         log.info("Выполнен запрос POST /bookings.");
         return service.create(userId, createBookingDto);
@@ -33,7 +32,7 @@ public class BookingController {
 
     @PatchMapping("/{bookingId}")
     public BookingDto update(
-            @RequestHeader(XSharerUserId) long ownerId,
+            @RequestHeader("X-Sharer-User-Id") long ownerId,
             @PathVariable long bookingId,
             @RequestParam(required = true, name = "approved") boolean approved) {
         log.info("Выполнен запрос PATCH /bookings/{}?approved={}.", bookingId, approved);
@@ -41,14 +40,14 @@ public class BookingController {
     }
 
     @GetMapping("/{bookingId}")
-    public BookingDto get(@RequestHeader(XSharerUserId) long userId, @PathVariable long bookingId) {
+    public BookingDto get(@RequestHeader("X-Sharer-User-Id") long userId, @PathVariable long bookingId) {
         log.info("Выполнен запрос GET /bookings/{}.", bookingId);
         return service.get(userId, bookingId);
     }
 
     @GetMapping
     public List<BookingDto> getAllByBooker(
-            @RequestHeader(XSharerUserId) long bookerId,
+            @RequestHeader("X-Sharer-User-Id") long bookerId,
             @RequestParam(required = false, name = "state", defaultValue = "ALL") String status) {
         log.info("Выполнен запрос GET /bookings?state={}.", status);
         return service.getAllByBooker(bookerId, status);
@@ -56,7 +55,7 @@ public class BookingController {
 
     @GetMapping("/owner")
     public List<BookingDto> getAllByOwner(
-            @RequestHeader(XSharerUserId) long ownerId,
+            @RequestHeader("X-Sharer-User-Id") long ownerId,
             @RequestParam(required = false, name = "state", defaultValue = "ALL") String status) {
         log.info("Выполнен запрос GET /bookings/owner?state={}.", status);
         return service.getAllByOwner(ownerId, status);
