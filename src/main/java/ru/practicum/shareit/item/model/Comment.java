@@ -2,40 +2,44 @@ package ru.practicum.shareit.item.model;
 
 import lombok.*;
 import org.hibernate.Hibernate;
+import ru.practicum.shareit.user.model.User;
 
 import javax.persistence.*;
 import java.io.Serializable;
+import java.time.LocalDateTime;
 import java.util.Objects;
 
 @Entity
-@Table(name = "items", schema = "public")
+@Table(name = "comments", schema = "public")
 @Getter
 @Setter
 @RequiredArgsConstructor
-public class Item implements Serializable {
+public class Comment implements Serializable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false)
-    private String name;
+    private String text;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "item_id", nullable = false)
+    private Item item;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "author_id", nullable = false)
+    private User author;
 
     @Column(nullable = false)
-    private String description;
-
-    @Column(name = "is_available", nullable = false)
-    private Boolean available;
-
-    @Column(name = "owner_id")
-    private Long ownerId;
+    private LocalDateTime created;
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || Hibernate.getClass(this) != Hibernate.getClass(o)) return false;
-        Item item = (Item) o;
-        return id != null && Objects.equals(id, item.id);
+        Comment comment = (Comment) o;
+        return id != null && Objects.equals(id, comment.id);
     }
 
     @Override

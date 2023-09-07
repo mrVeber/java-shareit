@@ -13,44 +13,33 @@ import java.util.List;
 
 @RestController
 @RequestMapping(path = "/users")
-@RequiredArgsConstructor
 @Slf4j
+@RequiredArgsConstructor
 public class UserController {
-    private final UserService userService;
-
+    private final UserService service;
     @PostMapping
-    public UserDto addUser(@Validated(Create.class) @RequestBody UserDto userDto) {
-        log.debug("Received request to add new user.");
-        return userService.addUser(userDto);
+    public UserDto create(@Validated(Create.class) @RequestBody UserDto user) {
+        log.info("Выполнен запрос POST /users.");
+        return service.create(user);
     }
-
     @PatchMapping("/{userId}")
-    public UserDto updateUser(@PathVariable(value = "userId") long userId,
-                              @Validated(Update.class)
-                              @RequestBody UserDto userDto) {
-        log.debug("Received request to update existed information about user with id {}.", userId);
-
-        return userService.updateUser(userId, userDto);
+    public UserDto update(@PathVariable long userId, @Validated(Update.class) @RequestBody UserDto user) {
+        log.info("Выполнен запрос PATCH /users/{}.", userId);
+        return service.update(userId, user);
     }
-
     @GetMapping("/{userId}")
-    public UserDto getUserById(@PathVariable(value = "userId") long userId) {
-        log.debug("Received request to get existed user with id {}.", userId);
-
-        return userService.getUserDtoById(userId);
+    public UserDto get(@PathVariable long userId) {
+        log.info("Выполнен запрос GET /users/{}.", userId);
+        return service.get(userId);
     }
-
-    @GetMapping
-    public List<UserDto> getAll() {
-        log.debug("Received request to get all users.");
-
-        return userService.getAllUsers();
-    }
-
     @DeleteMapping("/{userId}")
-    public void deleteUser(@PathVariable(value = "userId") long userId) {
-        log.debug("Received request to delete user with id {}.", userId);
-
-        userService.deleteUser(userId);
+    public void delete(@PathVariable long userId) {
+        log.info("Выполнен запрос DELETE /users/{}.", userId);
+        service.delete(userId);
+    }
+    @GetMapping
+    public List<UserDto> get() {
+        log.info("Выполнен запрос GET /users.");
+        return service.get();
     }
 }
