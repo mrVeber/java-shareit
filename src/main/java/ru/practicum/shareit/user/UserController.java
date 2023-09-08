@@ -1,50 +1,44 @@
 package ru.practicum.shareit.user;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.shareit.user.dto.UserDto;
+import ru.practicum.shareit.user.mapper.UserMapper;
 import ru.practicum.shareit.user.service.UserService;
-import ru.practicum.shareit.validators.Create;
-import ru.practicum.shareit.validators.Update;
 
+import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping(path = "/users")
-@Slf4j
 @RequiredArgsConstructor
 public class UserController {
-    private final UserService service;
+    private final UserService userService;
 
-    @PostMapping
-    public UserDto create(@Validated(Create.class) @RequestBody UserDto user) {
-        log.info("Выполнен запрос POST /users.");
-        return service.create(user);
-    }
-
-    @PatchMapping("/{userId}")
-    public UserDto update(@PathVariable long userId, @Validated(Update.class) @RequestBody UserDto user) {
-        log.info("Выполнен запрос PATCH /users/{}.", userId);
-        return service.update(userId, user);
-    }
-
-    @GetMapping("/{userId}")
-    public UserDto get(@PathVariable long userId) {
-        log.info("Выполнен запрос GET /users/{}.", userId);
-        return service.get(userId);
-    }
-
-    @DeleteMapping("/{userId}")
-    public void delete(@PathVariable long userId) {
-        log.info("Выполнен запрос DELETE /users/{}.", userId);
-        service.delete(userId);
+    @GetMapping("{id}")
+    public UserDto getUser(@PathVariable(required = false) long id) {
+        return userService.getUserDto(id);
     }
 
     @GetMapping
-    public List<UserDto> get() {
-        log.info("Выполнен запрос GET /users.");
-        return service.get();
+    public List<UserDto> getAllUsers() {
+        return userService.getAll();
+    }
+
+    @PostMapping
+    public UserDto create(@Valid @RequestBody @NotNull UserDto user) {
+        return userService.create(UserMapper.fromUser(user));
+    }
+
+    @PatchMapping("{id}")
+    public UserDto patchUpdate(@PathVariable long id, @RequestBody Map<String, String> updates) {
+        return userService.update(id, updates);
+    }
+
+    @DeleteMapping("{id}")
+    public void deleteUser(@PathVariable long id) {
+        userService.delete(id);
     }
 }

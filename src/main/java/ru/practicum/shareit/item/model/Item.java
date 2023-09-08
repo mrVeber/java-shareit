@@ -1,45 +1,29 @@
 package ru.practicum.shareit.item.model;
 
 import lombok.*;
-import org.hibernate.Hibernate;
+import ru.practicum.shareit.user.model.User;
 
 import javax.persistence.*;
-import java.io.Serializable;
-import java.util.Objects;
 
 @Entity
-@Table(name = "items", schema = "public")
-@Getter
 @Setter
-@RequiredArgsConstructor
-public class Item implements Serializable {
-
+@Getter
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+@Table(name = "items")
+public class Item {
     @Id
+    @Column(name = "item_id")
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
     @Column(nullable = false)
     private String name;
-
     @Column(nullable = false)
     private String description;
-
-    @Column(name = "is_available", nullable = false)
+    @Column(nullable = false)
     private Boolean available;
-
-    @Column(name = "owner_id")
-    private Long ownerId;
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || Hibernate.getClass(this) != Hibernate.getClass(o)) return false;
-        Item item = (Item) o;
-        return id != null && Objects.equals(id, item.id);
-    }
-
-    @Override
-    public int hashCode() {
-        return getClass().hashCode();
-    }
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User owner;
 }

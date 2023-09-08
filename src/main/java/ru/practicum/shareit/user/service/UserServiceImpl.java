@@ -1,64 +1,80 @@
 package ru.practicum.shareit.user.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.practicum.shareit.exception.model.UserNotFoundException;
+import ru.practicum.shareit.exception.model.NotFoundException;
 import ru.practicum.shareit.user.dto.UserDto;
-import ru.practicum.shareit.user.mapper.UserMapper;
 import ru.practicum.shareit.user.model.User;
+import ru.practicum.shareit.user.mapper.UserMapper;
 import ru.practicum.shareit.user.repository.UserRepository;
 
-import javax.persistence.EntityNotFoundException;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Map;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class UserServiceImpl implements UserService {
-    private final UserRepository repository;
+    private final UserRepository userRepository;
 
-    @Transactional
     @Override
-    public UserDto create(UserDto userDto) {
-        User user = repository.save(UserMapper.fromUserDto(userDto));
-        return UserMapper.toUserDto(user);
-    }
-
     @Transactional
-    @Override
-    public UserDto update(long userId, UserDto userDto) {
-        User updatedUser = repository.getReferenceById(userId);
-        if (userDto.getName() != null && !userDto.getName().isBlank()) {
-            updatedUser.setName(userDto.getName());
-        }
-        if (userDto.getEmail() != null) {
-            updatedUser.setEmail(userDto.getEmail());
-        }
-        return UserMapper.toUserDto(updatedUser);
+    public UserDto create(User user) {
+        log.info("UserService: create implementation. User ID {}.", user.getId());
+        return UserMapper.toUserDto(userRepository.save(user));
     }
 
     @Override
-    public UserDto get(long userId) {
-        try {
-            return UserMapper.toUserDto(repository.getReferenceById(userId));
-        } catch (EntityNotFoundException exception) {
-            throw new UserNotFoundException(String.format("Пользователь с идентификатором %d не найден.", userId));
+    @Transactional
+    public UserDto update(long id, Map<String, String> updates) {
+        User user = getUser(id);
+        if (updates.containsKey("name")) {
+            String name = updates.get("name");
+            user.setName(name.trim());
         }
+        if (updates.containsKey("email")) {
+            String email = updates.get("email");
+            user.setEmail(email);
+        }
+        userRepository.save(user);
+        log.info("UserService: update implementation. User ID {}.", user.getId());
+        return UserMapper.toUserDto(getUser(id));
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public User getUser(long id) {
+        log.info("UserService: findById implementation. User ID {}.", userRepository.findById(id));
+        return userRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("User user"));
+    }
+
+    @Override
+    public UserDto getUserDto(long id) {
+        log.info("UserService: getUserDto implementation. User ID {}.", userRepository.findById(id));
+        return UserMapper.toUserDto(getUser(id));
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public List<UserDto> getAll() {
+        log.info("UserService: getAll implementation");
+        return UserMapper.toUserDtoList(userRepository.findAll());
     }
 
     @Transactional
     @Override
     public void delete(long userId) {
-        repository.deleteById(userId);
+        log.info("UserService: delete implementation. User ID {}.", userId);
+        userRepository.deleteById(userId);
     }
 
+    @Transactional
     @Override
-    public List<UserDto> get() {
-        return repository.findAll().stream().map(UserMapper::toUserDto).collect(Collectors.toList());
+    public void deleteAll() {
+        log.info("UserService: deleteAll implementation.");
+        userRepository.deleteAll();
     }
-
 }
-
-

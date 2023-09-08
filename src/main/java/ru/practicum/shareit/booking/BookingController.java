@@ -1,63 +1,51 @@
 package ru.practicum.shareit.booking;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import ru.practicum.shareit.booking.dto.BookingDto;
-import ru.practicum.shareit.booking.dto.BookingRequestDto;
-import ru.practicum.shareit.booking.model.BookingStatus;
+import ru.practicum.shareit.booking.dto.OutputBookingDto;
+import ru.practicum.shareit.booking.dto.InputBookingDto;
+import ru.practicum.shareit.booking.model.BookingState;
 import ru.practicum.shareit.booking.service.BookingService;
-import ru.practicum.shareit.validators.Create;
 
+import javax.validation.Valid;
 import java.util.List;
 
 @RestController
-@Slf4j
-@RequiredArgsConstructor
 @RequestMapping(path = "/bookings")
+@RequiredArgsConstructor
+@Validated
 public class BookingController {
-
-    private final BookingService service;
-
-    @PostMapping
-    public BookingDto create(
-            @RequestHeader("X-Sharer-User-Id") long userId,
-            @Validated(Create.class) @RequestBody BookingRequestDto createBookingDto) {
-        log.info("Выполнен запрос POST /bookings.");
-        return service.create(userId, createBookingDto);
-    }
-
-    @PatchMapping("/{bookingId}")
-    public BookingDto update(
-            @RequestHeader("X-Sharer-User-Id") long ownerId,
-            @PathVariable long bookingId,
-            @RequestParam(required = true, name = "approved") boolean approved) {
-        log.info("Выполнен запрос PATCH /bookings/{}?approved={}.", bookingId, approved);
-        return service.update(ownerId, bookingId, approved ? BookingStatus.APPROVED : BookingStatus.REJECTED);
-    }
+    private static final String LINE = "X-Sharer-User-Id";
+    private final BookingService bookingService;
 
     @GetMapping("/{bookingId}")
-    public BookingDto get(@RequestHeader("X-Sharer-User-Id") long userId, @PathVariable long bookingId) {
-        log.info("Выполнен запрос GET /bookings/{}.", bookingId);
-        return service.get(userId, bookingId);
+    public OutputBookingDto getBookingDto(@RequestHeader(LINE) Long userId, @PathVariable Long bookingId) {
+        return bookingService.getBookingDto(bookingId, userId);
     }
 
     @GetMapping
-    public List<BookingDto> getAllByBooker(
-            @RequestHeader("X-Sharer-User-Id") long bookerId,
-            @RequestParam(required = false, name = "state", defaultValue = "ALL") String status) {
-        log.info("Выполнен запрос GET /bookings?state={}.", status);
-        return service.getAllByBooker(bookerId, status);
+    public List<OutputBookingDto> getBookingUser(@RequestHeader(LINE) Long userId,
+                                                 @RequestParam(defaultValue = "ALL") String state) {
+        return bookingService.getBookingBooker(BookingState.getState(state), userId);
     }
 
     @GetMapping("/owner")
-    public List<BookingDto> getAllByOwner(
-            @RequestHeader("X-Sharer-User-Id") long ownerId,
-            @RequestParam(required = false, name = "state", defaultValue = "ALL") String status) {
-        log.info("Выполнен запрос GET /bookings/owner?state={}.", status);
-        return service.getAllByOwner(ownerId, status);
+    public List<OutputBookingDto> getBookingOwner(@RequestHeader(LINE) Long userId,
+                                                  @RequestParam(defaultValue = "ALL") String state) {
+        return bookingService.getBookingOwner(BookingState.getState(state), userId);
+    }
+
+    @PostMapping
+    public OutputBookingDto create(@RequestHeader(LINE) long userId,
+                                   @Valid @RequestBody InputBookingDto booking) {
+        return bookingService.create(booking, userId);
+    }
+
+    @PatchMapping("/{bookingId}")
+    public OutputBookingDto update(@RequestHeader(LINE) Long userId,
+                                   @PathVariable Long bookingId,
+                                   @RequestParam boolean approved) {
+        return bookingService.updateBooking(bookingId, userId, approved);
     }
 }

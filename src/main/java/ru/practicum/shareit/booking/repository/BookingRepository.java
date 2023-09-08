@@ -1,55 +1,99 @@
 package ru.practicum.shareit.booking.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.booking.model.BookingStatus;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
-public interface  BookingRepository extends JpaRepository<Booking, Long> {
+@Repository
+public interface BookingRepository extends JpaRepository<Booking, Long> {
+    @Modifying
+    @Query("UPDATE Booking i SET i.status = :status WHERE i.id = :bookingId")
+    void updateStatus(@Param("status") BookingStatus status, @Param("bookingId") Long bookingId);
 
-    @Query("SELECT b FROM Booking AS b WHERE b.booker.id = ?1")
-    List<Booking> findAllByBooker(long bookerId, Sort sort);
+    List<Booking> findAllByBookerId(long bookerId);
 
-    @Query("SELECT b FROM Booking AS b WHERE b.booker.id = ?1 AND b.status = :#{#status}")
-    List<Booking> findAllByBookerAndStatus(long bookerId, @Param("status") BookingStatus status, Sort sort);
+    List<Booking> findAllByBookerIdAndStatus(long bookerId, BookingStatus status);
 
-    @Query("SELECT b FROM Booking AS b WHERE b.booker.id = ?1 AND b.end < CURRENT_TIMESTAMP")
-    List<Booking> findAllPastByBooker(long bookerId, Sort sort);
+    List<Booking> findAllByBookerIdAndStartAfter(long bookerId, LocalDateTime start);
 
-    @Query("SELECT b FROM Booking AS b WHERE b.booker.id = ?1 AND CURRENT_TIMESTAMP BETWEEN b.start AND b.end")
-    List<Booking> findAllCurrentByBooker(long bookerId, Sort sort);
+    List<Booking> findAllByBookerIdAndEndBefore(long bookerId, LocalDateTime end);
 
-    @Query("SELECT b FROM Booking AS b WHERE b.booker.id = ?1 AND b.start > CURRENT_TIMESTAMP")
-    List<Booking> findAllFutureByBooker(long bookerId, Sort sort);
+    List<Booking> findAllByItemIdAndStatus(long itemId, BookingStatus status);
 
-    @Query("SELECT b FROM Booking AS b INNER JOIN Item AS i ON b.item.id = i.id WHERE i.ownerId = ?1")
-    List<Booking> findAllByOwner(long ownerId, Sort sort);
+    Optional<Booking> findFirstByItemIdAndBookerIdAndStatusAndEndBefore(long itemId, long bookerId,
+                                                                        BookingStatus status, LocalDateTime end);
 
-    @Query("SELECT b FROM Booking AS b INNER JOIN Item AS i ON b.item.id = i.id WHERE i.ownerId = ?1 AND b.status = :#{#status}")
-    List<Booking> findAllByOwnerAndStatus(long ownerId, @Param("status") BookingStatus status, Sort sort);
+    @Query (value = "SELECT i FROM Booking i" +
+            "WHERE i.item_id  = :idItem " +
+            "AND i.start_date < now() " +
+            "ORDER BY i.end_date DESC " +
+            "LIMIT 1", nativeQuery = true)
+    Booking getLastBooking(@Param("idItem") Long idItem);
 
-    @Query("SELECT b FROM Booking AS b INNER JOIN Item AS i ON b.item.id = i.id WHERE i.ownerId = ?1 AND b.end < CURRENT_TIMESTAMP")
-    List<Booking> findAllPastByOwner(long ownerId, Sort sort);
+    @Query (value = "SELECT i FROM Booking i " +
+            "WHERE i.item_id  = :idItem " +
+            "AND i.start_date > :time " +
+            "ORDER BY i.start_date ASC " +
+            "LIMIT 1", nativeQuery = true)
+    Booking getNextBooking(@Param("idItem") Long idItem,
+                           @Param("time") LocalDateTime time);
 
-    @Query("SELECT b FROM Booking AS b INNER JOIN Item AS i ON b.item.id = i.id WHERE i.ownerId = ?1 AND CURRENT_TIMESTAMP BETWEEN b.start AND b.end")
-    List<Booking> findAllCurrentByOwner(long ownerId, Sort sort);
+    @Query(value = "SELECT i FROM Booking i " +
+            "WHERE i.booker.id = :bookerId " +
+            "AND i.start < :dateTime " +
+            "AND i.end > :dateTime " +
+            "ORDER BY i.start DESC")
+    List<Booking> findAllByBookerIdAndStartBeforeAndEndAfter(@Param("bookerId")long bookerId,
+                                                             @Param("dateTime")LocalDateTime dateTime);
 
-    @Query("SELECT b FROM Booking AS b INNER JOIN Item AS i ON b.item.id = i.id WHERE i.ownerId = ?1 AND b.start > CURRENT_TIMESTAMP")
-    List<Booking> findAllFutureByOwner(long ownerId, Sort sort);
+    @Query(value = "SELECT i FROM Booking i " +
+            "join fetch i.item AS a " +
+            "join fetch a.owner AS o " +
+            " WHERE o.id = :ownerId " +
+            "ORDER BY i.start DESC")
+    List<Booking> findAllByOwnerId(@Param("ownerId") Long ownerId);
 
-    @Query("SELECT b FROM Booking AS b INNER JOIN Item AS i ON b.item.id = i.id WHERE b.item.id = ?1 AND b.start <= CURRENT_TIMESTAMP AND i.ownerId = ?2")
-    List<Booking> getLastByItemId(long itemId, long ownerId, Sort sort);
+    @Query(value = "SELECT i " +
+            "FROM Booking i " +
+            "join fetch i.item AS a join fetch a.owner AS o " +
+            " WHERE o.id = :ownerId " +
+            "AND i.status = :status " +
+            "ORDER BY i.start DESC")
+    List<Booking> findAllByOwnerIdAndStatus(@Param("ownerId") Long ownerId, @Param("status") BookingStatus status);
 
-    @Query("SELECT b FROM Booking AS b INNER JOIN Item AS i ON b.item.id = i.id WHERE b.item.id = ?1 AND b.start > CURRENT_TIMESTAMP AND i.ownerId = ?2 AND b.status = 'APPROVED'")
-    List<Booking> getNextByItemId(long itemId, long ownerId, Sort sort);
+    @Query(value = "SELECT i FROM Booking i " +
+            "join fetch i.item AS a " +
+            "join fetch a.owner AS o " +
+            "WHERE o.id = :ownerId " +
+            "AND i.start > :dateTime  " +
+            "ORDER BY i.start DESC")
+    List<Booking> findAllByOwnerIdAndStartAfter(@Param("ownerId") Long ownerId,
+                                                @Param("dateTime") LocalDateTime dateTime);
 
-    @Query("SELECT b FROM Booking AS b WHERE b.item.id = ?1 AND b.status != :#{#status}")
-    List<Booking> findAllByItemIdAndStatus(long itemId, @Param("status") BookingStatus status);
+    @Query(value = "SELECT i FROM Booking i " +
+            "join fetch i.item AS a " +
+            "join fetch a.owner AS o " +
+            " WHERE o.id = :ownerId " +
+            "AND i.end < :dateTime  " +
+            "ORDER BY i.start DESC")
+    List<Booking> findAllByOwnerIdAndEndBefore(@Param("ownerId") Long ownerId,
+                                               @Param("dateTime") LocalDateTime dateTime);
 
-    @Query("SELECT b FROM Booking AS b WHERE b.item.id = ?1 AND b.start <= CURRENT_TIMESTAMP")
-    List<Booking> findAllCurrentByItemId(long itemId);
+    @Query(value = "SELECT i FROM Booking i " +
+            "join fetch i.item AS a " +
+            "join fetch a.owner AS o " +
+            " WHERE o.id = :ownerId " +
+            "AND i.start < :dateTime " +
+            "AND i.end > :dateTime " +
+            "ORDER BY i.start DESC")
+    List<Booking> findAllByOwnerIdAndStartBeforeAndEndAfter(@Param("ownerId") Long ownerId,
+                                                            @Param("dateTime") LocalDateTime dateTime);
 }
