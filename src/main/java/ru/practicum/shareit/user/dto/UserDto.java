@@ -8,6 +8,7 @@ import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.Size;
 import ru.practicum.shareit.validators.Create;
 import ru.practicum.shareit.validators.Update;
+
 @Data
 public class UserDto {
     private Long id;
