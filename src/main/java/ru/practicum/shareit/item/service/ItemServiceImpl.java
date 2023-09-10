@@ -169,7 +169,7 @@ public class ItemServiceImpl implements ItemService {
         Item item = itemRepository
                 .findById(itemId).orElseThrow(() -> new NotFoundException(
                         String.format("Вещь с id %s не найдена", itemId)));
-        Object StatusBooking;
+
         List<Booking> bookings = bookingRepository.findAllByItemIdAndBookerIdAndStatus(itemId, userId,
                 BookingStatus.APPROVED, Sort.by(DESC, "start"));
 
