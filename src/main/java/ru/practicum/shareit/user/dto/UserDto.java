@@ -6,15 +6,10 @@ import javax.validation.constraints.Email;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.Size;
-
+import ru.practicum.shareit.validators.Create;
+import ru.practicum.shareit.validators.Update;
 @Data
 public class UserDto {
-    public interface Create {
-    }
-
-    public interface Update {
-    }
-
     private Long id;
     @NotBlank(groups = {Create.class})
     @Size(groups = {Create.class, Update.class}, max = 255)

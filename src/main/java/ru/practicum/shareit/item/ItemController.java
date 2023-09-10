@@ -9,6 +9,9 @@ import ru.practicum.shareit.item.dto.CreateUpdateItemDto;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.service.ItemService;
 import lombok.extern.slf4j.Slf4j;
+import ru.practicum.shareit.validators.Create;
+import ru.practicum.shareit.validators.Update;
+
 
 import javax.validation.Valid;
 import java.util.Collection;
@@ -24,7 +27,7 @@ public class ItemController {
     private final ItemService itemService;
 
     @PostMapping
-    public ItemDto createItem(@Validated(CreateUpdateItemDto.Create.class) @RequestBody CreateUpdateItemDto itemDto,
+    public ItemDto createItem(@Validated(Create.class) @RequestBody CreateUpdateItemDto itemDto,
                               @RequestHeader(OWNER_ID) Long ownerId) {
         log.info("Получен запрос создания новой вещи");
         return itemService.createItem(itemDto, ownerId);
@@ -43,7 +46,7 @@ public class ItemController {
     }
 
     @PatchMapping("/{itemId}")
-    public ItemDto updateItem(@Validated(CreateUpdateItemDto.Update.class) @RequestBody CreateUpdateItemDto itemDto, @PathVariable Long itemId,
+    public ItemDto updateItem(@Validated(Update.class) @RequestBody CreateUpdateItemDto itemDto, @PathVariable Long itemId,
                               @RequestHeader(OWNER_ID) Long userId) {
         log.info("Получен запрос обновления вещи по id");
         return itemService.updateItem(itemDto, itemId, userId);

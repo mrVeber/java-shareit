@@ -6,6 +6,8 @@ import org.springframework.web.bind.annotation.*;
 import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.service.UserService;
 import lombok.extern.slf4j.Slf4j;
+import ru.practicum.shareit.validators.Create;
+import ru.practicum.shareit.validators.Update;
 
 import java.util.List;
 
@@ -17,7 +19,7 @@ public class UserController {
     private final UserService userService;
 
     @PostMapping
-    public UserDto createUser(@Validated(UserDto.Create.class) @RequestBody UserDto userDto) {
+    public UserDto createUser(@Validated(Create.class) @RequestBody UserDto userDto) {
         log.info("Получен запрос на создание пользователя");
         return userService.createUser(userDto);
     }
@@ -42,7 +44,7 @@ public class UserController {
     }
 
     @PatchMapping("{id}")
-    public UserDto updateUserById(@Validated(UserDto.Update.class) @RequestBody UserDto user, @PathVariable Long id) {
+    public UserDto updateUserById(@Validated(Update.class) @RequestBody UserDto user, @PathVariable Long id) {
         log.info("Получен запрос на обновление пользователя по id");
         return userService.updateUserById(user, id);
     }
