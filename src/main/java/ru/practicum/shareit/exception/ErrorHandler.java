@@ -6,44 +6,41 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import ru.practicum.shareit.exception.model.AlreadyUsedException;
-import ru.practicum.shareit.exception.model.ErrorResponse;
-import ru.practicum.shareit.exception.model.NotFoundException;
-import ru.practicum.shareit.exception.model.ValidationException;
+import ru.practicum.shareit.exception.model.*;
 
-import javax.validation.ConstraintViolationException;
+import javax.validation.ValidationException;
+import java.util.Map;
 
-@RestControllerAdvice
 @Slf4j
+@RestControllerAdvice
 public class ErrorHandler {
-    @ExceptionHandler({MethodArgumentNotValidException.class,
-            ConstraintViolationException.class, ValidationException.class,
-           IllegalStateException.class})
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ErrorResponse validationExceptionHandler(final RuntimeException e) {
-        log.debug("Получен BAD_REQUEST {}", e.getMessage(), e);
-        return new ErrorResponse(e.getMessage());
-    }
 
-    @ExceptionHandler(NotFoundException.class)
+    @ExceptionHandler
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ErrorResponse notFoundExceptionHandler(final NotFoundException e) {
-        log.debug("Получен NOT_FOUND {}", e.getMessage(), e);
-        return new ErrorResponse(e.getMessage());
+    public Map<String, String> handleNotFoundExceptionHandler(NotFoundException exception) {
+        log.info(exception.getMessage());
+        return Map.of("error", "Not found",
+                "errorMessage", exception.getMessage());
     }
 
-    @ExceptionHandler(AlreadyUsedException.class)
+    @ExceptionHandler(EmailExeption.class)
     @ResponseStatus(HttpStatus.CONFLICT)
-    public ErrorResponse conflictExceptionHandler(final AlreadyUsedException e) {
-        log.debug("Получен CONFLICT {}", e.getMessage(), e);
-        return new ErrorResponse(e.getMessage());
+    public Map<String, String> handleEmailExceptionHandler(EmailExeption exception) {
+        log.info(exception.getMessage());
+        return Map.of("error", exception.getMessage());
     }
 
     @ExceptionHandler
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ErrorResponse handle(Throwable e) {
-        log.debug("Непредвиденная ошибка сервера {}", e.getMessage(), e);
-        return new ErrorResponse(e.getMessage());
+    public Map<String, String> handleServerErrorExceptionHandler(Throwable exception) {
+        log.info(exception.getMessage());
+        return Map.of("error", exception.getMessage());
     }
 
+    @ExceptionHandler({MethodArgumentNotValidException.class, BookingException.class, ValidationException.class})
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    private Map<String, String> handleBadRequestException(Exception exception) {
+        log.debug(exception.getMessage());
+        return Map.of("error", exception.getMessage());
+    }
 }
