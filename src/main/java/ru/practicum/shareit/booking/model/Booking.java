@@ -5,34 +5,35 @@ import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.model.User;
 
 import javax.persistence.*;
-import javax.validation.constraints.Future;
-import javax.validation.constraints.FutureOrPresent;
 import java.time.LocalDateTime;
 
-@Table(name = "bookings")
 @Entity
-@EqualsAndHashCode(exclude = {"startDate", "endDate", "item", "booker", "status"})
-@NoArgsConstructor
-@AllArgsConstructor
+@Table(name = "bookings")
 @Getter
 @Setter
+@ToString
+@AllArgsConstructor
+@NoArgsConstructor
 public class Booking {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    @Column(name = "start_booking")
-    @FutureOrPresent
+    private long id;
+
+    @Column(name = "start_date", nullable = false)
     private LocalDateTime start;
-    @Column(name = "end_booking")
-    @Future
+
+    @Column(name = "end_date", nullable = false)
     private LocalDateTime end;
+
     @ManyToOne
-    @JoinColumn(name = "item_id")
+    @JoinColumn(name = "item_id", nullable = false)
     private Item item;
+
     @ManyToOne
-    @JoinColumn(name = "booker_id")
+    @JoinColumn(name = "booker_id", nullable = false)
     private User booker;
+
     @Enumerated(EnumType.STRING)
-    @Column(name = "status")
     private BookingStatus status;
 }

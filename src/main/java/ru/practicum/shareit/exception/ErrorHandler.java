@@ -1,46 +1,62 @@
 package ru.practicum.shareit.exception;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.http.HttpStatus;
 import ru.practicum.shareit.exception.model.*;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 
-import javax.validation.ValidationException;
-import java.util.Map;
+import javax.validation.ConstraintViolationException;
 
 @Slf4j
 @RestControllerAdvice
 public class ErrorHandler {
 
-    @ExceptionHandler
-    @ResponseStatus(HttpStatus.NOT_FOUND)
-    public Map<String, String> handleNotFoundExceptionHandler(NotFoundException exception) {
-        log.info(exception.getMessage());
-        return Map.of("error", "Not found",
-                "errorMessage", exception.getMessage());
+    @ExceptionHandler({MethodArgumentNotValidException.class, ItemIsNotAvailableException.class,
+            WrongDatesException.class, BookingCanBeApprovedOnlyByOwnerException.class,
+            UnsupportedStatusException.class, NotBookerException.class})
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse validateException(RuntimeException e) {
+        log.info(e.getMessage());
+        return new ErrorResponse(e.getMessage());
     }
 
-    @ExceptionHandler(EmailExeption.class)
+    @ExceptionHandler
+    public ResponseEntity<String> validateException(final ConstraintViolationException e) {
+        log.info(e.getMessage());
+        return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler({EntityNotFoundException.class, IllegalVewAndUpdateException.class,
+            NotAvailableToBookOwnItemsException.class})
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ErrorResponse entityNotFoundException(RuntimeException e) {
+        log.info(e.getMessage());
+        return new ErrorResponse(e.getMessage());
+    }
+
+    @ExceptionHandler
     @ResponseStatus(HttpStatus.CONFLICT)
-    public Map<String, String> handleEmailExceptionHandler(EmailExeption exception) {
-        log.info(exception.getMessage());
-        return Map.of("error", exception.getMessage());
+    public ErrorResponse userNotUniqueEmailException(DataIntegrityViolationException e) {
+        log.info(e.getMessage());
+        return new ErrorResponse(e.getMessage());
+    }
+
+    @ExceptionHandler
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ErrorResponse notOwnerException(final NotOwnerException e) {
+        log.info(e.getMessage());
+        return new ErrorResponse(e.getMessage());
     }
 
     @ExceptionHandler
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public Map<String, String> handleServerErrorExceptionHandler(Throwable exception) {
-        log.info(exception.getMessage());
-        return Map.of("error", exception.getMessage());
-    }
-
-    @ExceptionHandler({MethodArgumentNotValidException.class, BookingException.class, ValidationException.class})
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    private Map<String, String> handleBadRequestException(Exception exception) {
-        log.debug(exception.getMessage());
-        return Map.of("error", exception.getMessage());
+    public ErrorResponse handleThrowable(final Throwable e) {
+        log.error(e.getMessage());
+        return new ErrorResponse("Произошла непредвиденная ошибка.");
     }
 }

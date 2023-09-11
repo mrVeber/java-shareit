@@ -1,48 +1,55 @@
 package ru.practicum.shareit.booking;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
-import ru.practicum.shareit.booking.dto.BookingDto;
-import ru.practicum.shareit.booking.dto.NewBooking;
+import ru.practicum.shareit.booking.dto.BookingDtoIn;
+import ru.practicum.shareit.booking.dto.BookingDtoOut;
 import ru.practicum.shareit.booking.service.BookingService;
 
-import javax.validation.Valid;
 import java.util.List;
+import javax.validation.Valid;
 
+import static ru.practicum.shareit.utils.Constants.X_SHARER_USER_ID;
+
+@Slf4j
+@RequiredArgsConstructor
 @RestController
 @RequestMapping(path = "/bookings")
-@RequiredArgsConstructor
 public class BookingController {
-    private static final String OWNER_ID = "X-Sharer-User-Id";
-
-    private final BookingService service;
+    private final BookingService bookingService;
 
     @PostMapping
-    public BookingDto createBookingRequest(@Valid @RequestBody NewBooking bookingDto,
-                                           @RequestHeader(OWNER_ID) Long userId) {
-        return service.createBooking(bookingDto, userId);
+    public BookingDtoOut saveNewBooking(@Valid @RequestBody BookingDtoIn bookingDtoIn,
+                                        @RequestHeader(X_SHARER_USER_ID) long userId) {
+        log.info("POST / bookings");
+        return bookingService.saveNewBooking(bookingDtoIn, userId);
     }
 
     @PatchMapping("/{bookingId}")
-    public BookingDto approveOrRejectBooking(@PathVariable Long bookingId, @RequestParam boolean approved,
-                                             @RequestHeader(OWNER_ID) long userId) {
-        return service.approveOrRejected(bookingId, approved, userId);
+    public BookingDtoOut approve(@PathVariable long bookingId, @RequestParam(name = "approved") Boolean isApproved,
+                                 @RequestHeader(X_SHARER_USER_ID) long userId) {
+        log.info("PATCH / bookings / {}", bookingId);
+        return bookingService.approve(bookingId, isApproved, userId);
     }
 
     @GetMapping("/{bookingId}")
-    public BookingDto getBookingById(@PathVariable Long bookingId, @RequestHeader(OWNER_ID) long userId) {
-        return service.getBookingById(bookingId, userId);
+    public BookingDtoOut getBookingById(@PathVariable long bookingId, @RequestHeader(X_SHARER_USER_ID) long userId) {
+        log.info("GET / bookings / {}", bookingId);
+        return bookingService.getBookingById(bookingId, userId);
     }
 
     @GetMapping
-    public List<BookingDto> getBookingAllByUserID(@RequestHeader(OWNER_ID) long userId,
-                                                  @RequestParam(defaultValue = "All") String state) {
-        return service.getAllBookingByUserId(userId, state);
+    public List<BookingDtoOut> getAllByBooker(@RequestParam(name = "state", defaultValue = "ALL") String state,
+                                              @RequestHeader(X_SHARER_USER_ID) long bookerId) {
+        log.info("GET / ByBooker {}", bookerId);
+        return bookingService.getAllByBooker(state, bookerId);
     }
 
     @GetMapping("/owner")
-    public List<BookingDto> getBookingAllByOwner(@RequestHeader(OWNER_ID) long userId,
-                                                 @RequestParam(defaultValue = "All") String state) {
-        return service.getBookingsOfOwner(userId, state);
+    public List<BookingDtoOut> getAllByOwner(@RequestParam(name = "state", defaultValue = "ALL") String state,
+                                             @RequestHeader(X_SHARER_USER_ID) long ownerId) {
+        log.info("GET / ByOwner / {}", ownerId);
+        return bookingService.getAllByOwner(ownerId, state);
     }
 }
