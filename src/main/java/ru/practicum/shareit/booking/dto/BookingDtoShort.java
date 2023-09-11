@@ -5,6 +5,7 @@ import lombok.Data;
 import ru.practicum.shareit.booking.model.BookingStatus;
 
 import java.time.LocalDateTime;
+
 @Data
 @AllArgsConstructor
 public class BookingDtoShort {
