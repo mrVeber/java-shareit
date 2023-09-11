@@ -1,6 +1,6 @@
 package ru.practicum.shareit.booking.model;
 
-import ru.practicum.shareit.exception.model.ExceptionForUnsupport;
+import ru.practicum.shareit.exception.model.BookingException;
 
 public enum BookingState {
     ALL,
@@ -10,14 +10,11 @@ public enum BookingState {
     WAITING,
     REJECTED;
 
-    public static BookingState getState(String text) {
-        if ((text == null) || text.isBlank()) {
-            return BookingState.ALL;
-        }
+    public static BookingState checkAndConvert(String source) {
         try {
-            return BookingState.valueOf(text.toUpperCase().trim());
+            return BookingState.valueOf(source);
         } catch (Exception e) {
-            throw new ExceptionForUnsupport("Unknown state: UNSUPPORTED_STATUS");
+            throw new BookingException(String.format("Unknown state: %S", source));
         }
     }
 }

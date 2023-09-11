@@ -6,26 +6,29 @@ import ru.practicum.shareit.user.model.User;
 import javax.persistence.*;
 import java.time.LocalDateTime;
 
+@Table(name = "comments")
+@Entity
+@EqualsAndHashCode(exclude = {"text", "item", "author"})
+@NoArgsConstructor
+@AllArgsConstructor
 @Getter
 @Setter
-@Entity
-@Builder
-@AllArgsConstructor
-@RequiredArgsConstructor
-@Table(name = "comments")
 public class Comment {
     @Id
-    @Column(name = "comment_id")
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @Column(name = "text", nullable = false)
+
     private String text;
+
+    @ToString.Exclude
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "item_id", nullable = false)
+    @JoinColumn(name = "item_id")
     private Item item;
+
+    @ToString.Exclude
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "author_id")
     private User author;
-    @Column
-    private LocalDateTime created = LocalDateTime.now();
+
+    private LocalDateTime created;
 }

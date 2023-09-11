@@ -1,60 +1,72 @@
 package ru.practicum.shareit.item;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.shareit.item.dto.CommentDto;
+import ru.practicum.shareit.item.dto.CreateCommentDto;
+import ru.practicum.shareit.item.dto.CreateUpdateItemDto;
 import ru.practicum.shareit.item.dto.ItemDto;
-import ru.practicum.shareit.item.mapper.ItemMapper;
 import ru.practicum.shareit.item.service.ItemService;
 import lombok.extern.slf4j.Slf4j;
+import ru.practicum.shareit.validators.Create;
+import ru.practicum.shareit.validators.Update;
+
 
 import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
+import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 
-@Slf4j
 @RestController
-@RequiredArgsConstructor
 @RequestMapping("/items")
+@RequiredArgsConstructor
+@Slf4j
 public class ItemController {
-    private static final String LINE = "X-Sharer-User-Id";
+    private static final String OWNER_ID = "X-Sharer-User-Id";
+
     private final ItemService itemService;
 
-    @GetMapping("/{itemId}")
-    public ItemDto getItem(@RequestHeader(LINE) long userId, @PathVariable long itemId) {
-        return itemService.getItemDtoById(itemId, userId);
-    }
-
-    @GetMapping
-    public List<ItemDto> getAll(@RequestHeader(LINE) long ownerId) {
-        return itemService.getAllUserItems(ownerId);
-    }
-
     @PostMapping
-    public ItemDto create(@RequestHeader(LINE) long ownerId, @Valid @RequestBody ItemDto itemDto) {
-        return itemService.add(ownerId, ItemMapper.toItem(itemDto));
+    public ItemDto createItem(@Validated(Create.class) @RequestBody CreateUpdateItemDto itemDto,
+                              @RequestHeader(OWNER_ID) Long ownerId) {
+        log.info("Получен запрос создания новой вещи");
+        return itemService.createItem(itemDto, ownerId);
     }
 
-    @GetMapping("/search")
-    public List<ItemDto> searchItems(@RequestHeader(LINE) long userId, @RequestParam(name = "text") String text) {
-        return itemService.searchItems(userId, text);
+    @GetMapping("{id}")
+    public ItemDto getItemByID(@PathVariable Long id, @RequestHeader(OWNER_ID) long userId) {
+        log.info("Получен запрос получения вещи по id");
+        return itemService.getItemFromStorage(id, userId);
     }
 
-    @DeleteMapping("/{itemId}")
-    public void delete(@RequestHeader(LINE) long ownerId, @PathVariable long itemId) {
-        itemService.delete(ownerId, itemId);
+    @DeleteMapping("{id}")
+    public void deleteItemById(@PathVariable Long id) {
+        log.info("Получен запрос удаления вещи по id");
+        itemService.deleteItemFromStorage(id);
     }
 
     @PatchMapping("/{itemId}")
-    public ItemDto update(@RequestHeader(LINE) long ownerId, @PathVariable long itemId,
-                          @RequestBody @NotNull Map<String, String> updates) {
-        return itemService.update(ownerId, itemId, updates);
+    public ItemDto updateItem(@Validated(Update.class) @RequestBody CreateUpdateItemDto itemDto, @PathVariable Long itemId,
+                              @RequestHeader(OWNER_ID) Long userId) {
+        log.info("Получен запрос обновления вещи по id");
+        return itemService.updateItem(itemDto, itemId, userId);
+    }
+
+    @GetMapping()
+    public List<ItemDto> getItemByIdOwner(@RequestHeader(OWNER_ID) Long id) {
+        log.info("Получен запрос получения вещи по id владельца");
+        return itemService.getAllItemFromStorageByUserId(id);
+    }
+
+    @GetMapping("/search")
+    public Collection<ItemDto> searchItems(@RequestParam(name = "text") String text) {
+        log.info("Получен запрос поиска вещи по тексту");
+        return itemService.searchItemsByText(text);
     }
 
     @PostMapping("/{itemId}/comment")
-    public CommentDto addComment(@RequestHeader(LINE) long userId, @PathVariable long itemId,
-                                 @Valid @RequestBody CommentDto commentDto) {
+    public CommentDto addComment(@RequestHeader(OWNER_ID) long userId, @PathVariable long itemId,
+                                 @RequestBody @Valid CreateCommentDto commentDto) {
         return itemService.addComment(userId, itemId, commentDto);
     }
 }

@@ -1,35 +1,16 @@
 package ru.practicum.shareit.item.mapper;
 
-import lombok.experimental.UtilityClass;
 import ru.practicum.shareit.item.dto.CommentDto;
+import ru.practicum.shareit.item.dto.CreateCommentDto;
 import ru.practicum.shareit.item.model.Comment;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
-@UtilityClass
-public class CommentMapper {
-    public static CommentDto toDto(Comment comment) {
-        return CommentDto.builder()
-                .id(comment.getId())
-                .text(comment.getText())
-                .itemName(comment.getItem().getName())
-                .authorName(comment.getAuthor().getName())
-                .created(comment.getCreated())
-                .build();
-    }
+@Mapper(componentModel = "Spring")
+public interface CommentMapper {
+    @Mapping(target = "authorName", source = "author.name")
+    CommentDto fromCommentToDto(Comment comment);
 
-    public static Comment toComment(CommentDto commentDto) {
-        return Comment.builder()
-                .id(commentDto.getId())
-                .text(commentDto.getText())
-                .created(commentDto.getCreated())
-                .build();
-    }
-
-    public static List<CommentDto> toDtoList(List<Comment> comments) {
-        return comments.stream()
-                .map(CommentMapper::toDto)
-                .collect(Collectors.toList());
-    }
+    Comment fromCreateDtoToComment(CreateCommentDto dto);
 }

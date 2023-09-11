@@ -8,56 +8,39 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import ru.practicum.shareit.exception.model.*;
 
+import javax.validation.ValidationException;
+import java.util.Map;
+
 @Slf4j
 @RestControllerAdvice
 public class ErrorHandler {
 
     @ExceptionHandler
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ErrorResponse handleValidationException(final ValidationException e) {
-        log.error("Bad Request {}", e.getMessage());
-        String errorMessage = "ValidationException: " + e.getMessage();
-        return new ErrorResponse(errorMessage);
-    }
-
-    @ExceptionHandler
-    @ResponseStatus (HttpStatus.BAD_REQUEST)
-    public ErrorResponse validateArgumentException(final MethodArgumentNotValidException e) {
-        log.error("Validation error: : {}", e.getMessage());
-        String errorMessage = "Validation error: " + e.getMessage();
-        return new ErrorResponse(errorMessage);
-    }
-
-    @ExceptionHandler
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ErrorResponse handleNotFoundException(final NotFoundException e) {
-        log.error("NotFoundException: : {}", e.getMessage());
-        String errorMessage = "NotFoundException: " + e.getMessage();
-        return new ErrorResponse(errorMessage);
+    public Map<String, String> handleNotFoundExceptionHandler(NotFoundException exception) {
+        log.info(exception.getMessage());
+        return Map.of("error", "Not found",
+                "errorMessage", exception.getMessage());
     }
 
-    @ExceptionHandler
-    @ResponseStatus (HttpStatus.FORBIDDEN)
-    public ErrorResponse handleForbiddenException(final ForbiddenException e) {
-        log.error("ForbiddenException: : {}", e.getMessage());
-        String errorMessage = "ForbiddenException: " + e.getMessage();
-        return new ErrorResponse(errorMessage);
-    }
-
-    @ExceptionHandler
-    @ResponseStatus (HttpStatus.INTERNAL_SERVER_ERROR)
-    public ErrorResponse handleExceptionForUnsupport(final ExceptionForUnsupport e) {
-        log.error("INTERNAL_SERVER_ERROR: : {}", e.getMessage());
-        String strError = e.getMessage();
-        return new ErrorResponse(strError);
+    @ExceptionHandler(EmailExeption.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public Map<String, String> handleEmailExceptionHandler(EmailExeption exception) {
+        log.info(exception.getMessage());
+        return Map.of("error", exception.getMessage());
     }
 
     @ExceptionHandler
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ErrorResponse handleThrowable(final Throwable e) {
-        log.error("INTERNAL_SERVER_ERROR: : {}", e.getMessage());
-        String strError = e.getMessage();
-        return new ErrorResponse(strError);
+    public Map<String, String> handleServerErrorExceptionHandler(Throwable exception) {
+        log.info(exception.getMessage());
+        return Map.of("error", exception.getMessage());
     }
 
+    @ExceptionHandler({MethodArgumentNotValidException.class, BookingException.class, ValidationException.class})
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    private Map<String, String> handleBadRequestException(Exception exception) {
+        log.debug(exception.getMessage());
+        return Map.of("error", exception.getMessage());
+    }
 }

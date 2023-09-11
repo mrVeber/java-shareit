@@ -4,19 +4,19 @@ import lombok.*;
 
 import javax.validation.constraints.Email;
 import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.Size;
+import ru.practicum.shareit.validators.Create;
+import ru.practicum.shareit.validators.Update;
 
-@Builder
-@Getter
-@Setter
-@AllArgsConstructor
+@Data
 public class UserDto {
-    private long id;
-    @NotBlank
-    @Size(max = 50)
+    private Long id;
+    @NotBlank(groups = {Create.class})
+    @Size(groups = {Create.class, Update.class}, max = 255)
     private String name;
-    @NotBlank
-    @Email(message = "incorrect email")
-    @Size(max = 256)
+    @Email(groups = {Create.class, Update.class})
+    @NotEmpty(groups = {Create.class})
+    @Size(groups = {Create.class, Update.class}, max = 512)
     private String email;
 }
