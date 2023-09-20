@@ -1,110 +1,195 @@
 package ru.practicum.shareit.item.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import ru.practicum.shareit.exception.model.NotFoundException;
-import ru.practicum.shareit.item.dao.ItemDao;
-import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.booking.mapper.BookingMapper;
+import java.util.function.Function;
+import ru.practicum.shareit.booking.model.Booking;
+import ru.practicum.shareit.booking.model.BookingStatus;
+import ru.practicum.shareit.booking.repository.BookingRepository;
+import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.shareit.exception.model.EntityNotFoundException;
+import ru.practicum.shareit.exception.model.NotBookerException;
+import ru.practicum.shareit.exception.model.NotOwnerException;
+import ru.practicum.shareit.item.dto.CommentDtoIn;
+import ru.practicum.shareit.item.dto.CommentDtoOut;
+import ru.practicum.shareit.item.dto.ItemDtoIn;
+import ru.practicum.shareit.item.dto.ItemDtoOut;
+import ru.practicum.shareit.item.mapper.CommentMapper;
 import ru.practicum.shareit.item.mapper.ItemMapper;
+import ru.practicum.shareit.item.model.Comment;
 import ru.practicum.shareit.item.model.Item;
-import ru.practicum.shareit.user.service.UserService;
+import ru.practicum.shareit.item.repository.CommentRepository;
+import ru.practicum.shareit.item.repository.ItemRepository;
+import ru.practicum.shareit.user.model.User;
+import ru.practicum.shareit.user.repository.UserRepository;
 
-import java.util.List;
+import java.time.LocalDateTime;
+import java.util.*;
 import java.util.stream.Collectors;
 
+import static java.util.stream.Collectors.toList;
+import static org.springframework.data.domain.Sort.Direction.ASC;
+import static org.springframework.data.domain.Sort.Direction.DESC;
+import static java.util.stream.Collectors.groupingBy;
+
+@Slf4j
+@Transactional
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class ItemServiceImpl implements ItemService {
-    private final ItemDao itemRepository;
-    private final UserService userService;
+
+    private final ItemRepository itemRepository;
+    private final UserRepository userRepository;
+    private final BookingRepository bookingRepository;
+    private final CommentRepository commentRepository;
 
     @Override
-    public ItemDto addItem(long userId, ItemDto itemDto) {
-        userService.checkIsUserPresent(userId);
-
-        Item item = ItemMapper.convertToItem(userId, itemDto);
-
-        log.debug("Sending to DAO item to create with name {} and description {} from user {}.",
-                item.getName(), item.getDescription(), userId);
-
-        return ItemMapper.convertToDto(itemRepository.addNewItem(item));
+    public ItemDtoOut saveNewItem(ItemDtoIn itemDtoIn, long userId) {
+        log.info("Создание новой вещи {}", itemDtoIn.getName());
+        User owner = getUser(userId);
+        Item item = ItemMapper.toItem(itemDtoIn);
+        item.setOwner(owner);
+        return ItemMapper.toItemDtoOut(itemRepository.save(item));
     }
 
     @Override
-    public ItemDto updateItem(long userId, ItemDto itemDto) {
-        userService.checkIsUserPresent(userId);
-
-        long itemId = itemDto.getId();
-        Item item = getItemById(itemId);
-
-        if (item.getOwnerId() != userId) {
-            throw new NotFoundException("Information about this user's item absent.");
+    public ItemDtoOut updateItem(long itemId, ItemDtoIn itemDtoIn, long userId) {
+        log.info("Обновление вещи {} с идентификатором {}", itemDtoIn.getName(), itemId);
+        getUser(userId);
+        Item item = itemRepository.findById(itemId).orElseThrow(() ->
+                new EntityNotFoundException(String.format("Объект класса %s не найден", Item.class)));
+        String name = itemDtoIn.getName();
+        String description = itemDtoIn.getDescription();
+        Boolean available = itemDtoIn.getAvailable();
+        if (item.getOwner().getId() == userId) {
+            if (name != null && !name.isBlank()) {
+                item.setName(name);
+            }
+            if (description != null && !description.isBlank()) {
+                item.setDescription(description);
+            }
+            if (available != null) {
+                item.setAvailable(available);
+            }
+        } else {
+            throw new NotOwnerException(String.format("Пользователь с id %s не является собственником %s",
+                    userId, name));
         }
-        if (itemDto.getName() != null && !itemDto.getName().isBlank()) {
-            item.setName(itemDto.getName());
-        }
-        if (itemDto.getDescription() != null && !itemDto.getDescription().isBlank()) {
-            item.setDescription(itemDto.getDescription());
-        }
-        if (itemDto.getAvailable() != null) {
-            item.setAvailable(itemDto.getAvailable());
-        }
-
-        log.debug("Sending to DAO updated item");
-
-        return ItemMapper.convertToDto(item);
+        return ItemMapper.toItemDtoOut(item);
     }
 
-
+    @Transactional(readOnly = true)
     @Override
-    public ItemDto getItemDtoById(long itemId) {
-        log.debug("Sending to DAO request to get item with id {}.", itemId);
-        return ItemMapper.convertToDto(itemRepository.getItemById(itemId)
-                .orElseThrow(() -> new NotFoundException("Item with id " + itemId + " does not present in repository.")));
+    public ItemDtoOut getItemById(long itemId, long userId) {
+        log.info("Получение вещи по идентификатору {}", itemId);
+        return itemRepository.findById(itemId).map(item -> addBookingsAndComments(item, userId)).orElseThrow(() ->
+                new EntityNotFoundException(String.format("Объект класса %s не найден", Item.class)));
     }
 
+    @Transactional(readOnly = true)
     @Override
-    public List<ItemDto> getItemsByUserId(long userId) {
-        userService.checkIsUserPresent(userId);
-
-        log.debug("Sending to DAO request for get items by user id {}.", userId);
-
-        List<Item> items = itemRepository.getItemsByUserId(userId);
-
-        return items.stream()
-                .map(ItemMapper::convertToDto)
-                .collect(Collectors.toList());
+    public List<ItemDtoOut> getItemsByOwner(long userId) {
+        log.info("Получение вещи по владельцу {}", userId);
+        getUser(userId);
+        List<Item> items = itemRepository.findAllByOwnerId(userId);
+        return addBookingsAndCommentsForList(items);
     }
 
+    @Transactional(readOnly = true)
     @Override
-    public List<ItemDto> searchInDescription(String text) {
-        log.debug("Sending to DAO request to search items by text \"{}\".", text);
+    public List<ItemDtoOut> getItemBySearch(String text) {
+        log.info("Получение вещи по поиску {}", text);
         if (text.isBlank()) {
-            return List.of();
+            return Collections.emptyList();
         }
-        List<Item> items = itemRepository.searchInDescription(text);
-
-        return items.stream()
-                .map(ItemMapper::convertToDto)
-                .collect(Collectors.toList());
+        return itemRepository.search(text).stream().map(ItemMapper::toItemDtoOut).collect(toList());
     }
 
     @Override
-    public void deleteUserItems(long userId) {
-        log.debug("Sending to DAO request to delete user id {} items.", userId);
-        itemRepository.deleteUserItems(userId);
+    public CommentDtoOut saveNewComment(long itemId, CommentDtoIn commentDtoIn, long userId) {
+        User user = getUser(userId);
+        Item item = itemRepository.findById(itemId).orElseThrow(() ->
+                new EntityNotFoundException(String.format("Объект класса %s не найден", Item.class)));
+        if (!bookingRepository.existsByBookerIdAndItemIdAndEndBefore(user.getId(), item.getId(), LocalDateTime.now())) {
+            throw new NotBookerException("Пользователь не пользовался вещью");
+        }
+        Comment comment = commentRepository.save(CommentMapper.toComment(commentDtoIn, item, user));
+        return CommentMapper.toCommentDtoOut(comment);
     }
 
-    private Item getItemById(long itemId) {
-        log.debug("Sending to DAO request to get item with id {}.", itemId);
-        return itemRepository.getItemById(itemId)
-                .orElseThrow(() -> new NotFoundException("Item with id " + itemId + " does not present in repository."));
+    private ItemDtoOut addBookingsAndComments(Item item, long userId) {
+        ItemDtoOut itemDtoOut = ItemMapper.toItemDtoOut(item);
+
+        LocalDateTime thisMoment = LocalDateTime.now();
+        if (itemDtoOut.getOwner().getId() == userId) {
+            itemDtoOut.setLastBooking(bookingRepository
+                    .findFirstByItemIdAndStartLessThanEqualAndStatus(itemDtoOut.getId(), thisMoment,
+                            BookingStatus.APPROVED, Sort.by(DESC, "end"))
+                    .map(BookingMapper::toBookingDtoShort)
+                    .orElse(null));
+
+            itemDtoOut.setNextBooking(bookingRepository
+                    .findFirstByItemIdAndStartAfterAndStatus(itemDtoOut.getId(), thisMoment,
+                            BookingStatus.APPROVED, Sort.by(ASC, "end"))
+                    .map(BookingMapper::toBookingDtoShort)
+                    .orElse(null));
+        }
+
+        itemDtoOut.setComments(commentRepository.findAllByItemId(itemDtoOut.getId())
+                .stream()
+                .map(CommentMapper::toCommentDtoOut)
+                .collect(toList()));
+
+        return itemDtoOut;
     }
 
-    private void checkIsItemPresent(long itemId) {
-        itemRepository.getItemById(itemId)
-                .orElseThrow(() -> new NotFoundException("Item with id " + itemId + " does not present in repository."));
+    private List<ItemDtoOut> addBookingsAndCommentsForList(List<Item> items) {
+        LocalDateTime thisMoment = LocalDateTime.now();
+
+        Map<Item, Booking> itemsWithLastBookings = bookingRepository
+                .findByItemInAndStartLessThanEqualAndStatus(items, thisMoment,
+                        BookingStatus.APPROVED, Sort.by(DESC, "end"))
+                .stream()
+                .collect(Collectors.toMap(Booking::getItem, Function.identity(), (o1, o2) -> o1));
+
+        Map<Item, Booking> itemsWithNextBookings = bookingRepository
+                .findByItemInAndStartAfterAndStatus(items, thisMoment,
+                        BookingStatus.APPROVED, Sort.by(ASC, "end"))
+                .stream()
+                .collect(Collectors.toMap(Booking::getItem, Function.identity(), (o1, o2) -> o1));
+
+        Map<Item, List<Comment>> itemsWithComments = commentRepository
+                .findByItemIn(items, Sort.by(DESC, "created"))
+                .stream()
+                .collect(groupingBy(Comment::getItem, toList()));
+
+        List<ItemDtoOut> itemDtoOuts = new ArrayList<>();
+        for (Item item : items) {
+            ItemDtoOut itemDtoOut = ItemMapper.toItemDtoOut(item);
+            Booking lastBooking = itemsWithLastBookings.get(item);
+            if (itemsWithLastBookings.size() > 0 && lastBooking != null) {
+                itemDtoOut.setLastBooking(BookingMapper.toBookingDtoShort(lastBooking));
+            }
+            Booking nextBooking = itemsWithNextBookings.get(item);
+            if (itemsWithNextBookings.size() > 0 && nextBooking != null) {
+                itemDtoOut.setNextBooking(BookingMapper.toBookingDtoShort(nextBooking));
+            }
+            List<CommentDtoOut> commentDtoOuts = itemsWithComments.getOrDefault(item, Collections.emptyList())
+                    .stream()
+                    .map(CommentMapper::toCommentDtoOut)
+                    .collect(toList());
+            itemDtoOut.setComments(commentDtoOuts);
+
+            itemDtoOuts.add(itemDtoOut);
+        }
+        return itemDtoOuts;
+    }
+
+    private User getUser(long userId) {
+        return userRepository.findById(userId).orElseThrow(() ->
+                new EntityNotFoundException(String.format("Объект класса %s не найден", User.class)));
     }
 }

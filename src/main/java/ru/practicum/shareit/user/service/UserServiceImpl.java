@@ -3,90 +3,65 @@ package ru.practicum.shareit.user.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import ru.practicum.shareit.exception.model.AlreadyUsedException;
-import ru.practicum.shareit.exception.model.NotFoundException;
-import ru.practicum.shareit.user.dao.UserDao;
+import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.shareit.exception.model.EntityNotFoundException;
 import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.mapper.UserMapper;
 import ru.practicum.shareit.user.model.User;
+import ru.practicum.shareit.user.repository.UserRepository;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
+@Transactional
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class UserServiceImpl implements UserService {
-    private final UserDao userRepository;
+    private final UserRepository userRepository;
+
+    @Transactional(readOnly = true)
+    @Override
+    public List<UserDto> getAllUsers() {
+        log.info("Получение всех пользователей");
+        return userRepository.findAll().stream().map(UserMapper::toUserDto).collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public UserDto getUserById(long userId) {
+        log.info("Получение пользователя по идентификатору {}", userId);
+        User user = userRepository.findById(userId).orElseThrow(() ->
+                new EntityNotFoundException(String.format("Объект класса %s не найден", User.class)));
+        return UserMapper.toUserDto(user);
+    }
 
     @Override
-    public UserDto addUser(UserDto userDto) {
-        if (!isEmailAvailable(userDto.getEmail())) {
-            throw new AlreadyUsedException("Email already used.");
-        }
-        log.debug("Sending to DAO information to add new user.");
-        return UserMapper.convertToDto(userRepository.addUser(UserMapper.convertToUser(userDto)));
+    public UserDto saveNewUser(UserDto userDto) {
+        log.info("Создание нового пользователя {}", userDto.getName());
+        User user = userRepository.save(UserMapper.toUser(userDto));
+        return UserMapper.toUserDto(user);
     }
 
     @Override
     public UserDto updateUser(long userId, UserDto userDto) {
-        checkIsUserPresent(userId);
-        User user = getUserById(userId);
-        if (userDto.getEmail() != null && !userDto.getEmail().equals(user.getEmail()) && !userDto.getEmail().isEmpty()) {
-            if (!isEmailAvailable(userDto.getEmail())) {
-                throw new AlreadyUsedException("Email already used.");
-            }
-            user.setEmail(userDto.getEmail());
+        log.info("Обновление существующего пользователя {}", userDto.getName());
+        User oldUser = userRepository.findById(userId).orElseThrow(() ->
+                new EntityNotFoundException(String.format("Объект класса %s не найден", User.class)));
+        String name = userDto.getName();
+        String email = userDto.getEmail();
+        if (name != null && !name.isBlank()) {
+            oldUser.setName(name);
         }
-        if (userDto.getName() != null && !userDto.getName().isBlank()) {
-            user.setName(userDto.getName());
+        if (email != null && !email.isBlank()) {
+            oldUser.setEmail(email);
         }
-        log.debug("Sending to DAO updated user {} information.", userId);
-        return UserMapper.convertToDto(userRepository.updateUser(user));
+        return UserMapper.toUserDto(oldUser);
     }
 
     @Override
-    public List<UserDto> getAllUsers() {
-        log.debug("Sending to DAO request to get all users.");
-
-        return userRepository.getAllUsers().stream()
-                .map(UserMapper::convertToDto)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public UserDto getUserDtoById(long userId) {
-        log.debug("Sending to DAO request to get user with id {}.", userId);
-
-        return UserMapper.convertToDto(userRepository.getUserById(userId)
-                .orElseThrow(() -> new NotFoundException("User with id " + userId + " does not present in repository.")));
-    }
-
-    @Override
-    public void checkIsUserPresent(long userId) {
-        userRepository.getUserById(userId)
-                .orElseThrow(() -> new NotFoundException("User with id " + userId + " does not present in repository."));
-    }
-
-    @Override
-    public void deleteUser(long userId) {
-        checkIsUserPresent(userId);
-
-        log.debug("Sending to DAO request to delete user with id {}.", userId);
-
-        userRepository.deleteUser(userId);
-    }
-
-    private User getUserById(long userId) {
-        return userRepository.getUserById(userId)
-                .orElseThrow(() -> new NotFoundException("User with id " + userId + " does not present in repository."));
-    }
-
-    public boolean isEmailAvailable(String email) {
-        List<String> emails = userRepository.getAllUsers().stream()
-                .map(User::getEmail)
-                .collect(Collectors.toList());
-
-        return !emails.contains(email);
+    public void deleteUser(long id) {
+        log.info("Удаление пользователя по идентификатору {}", id);
+        userRepository.deleteById(id);
     }
 }
