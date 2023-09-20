@@ -1,15 +1,36 @@
 package ru.practicum.shareit.item.mapper;
 
-import ru.practicum.shareit.item.dto.CreateUpdateItemDto;
-import ru.practicum.shareit.item.dto.ItemDto;
+import lombok.experimental.UtilityClass;
+import ru.practicum.shareit.item.dto.ItemDtoIn;
+import ru.practicum.shareit.item.dto.ItemDtoOut;
+import ru.practicum.shareit.item.dto.ItemDtoShort;
 import ru.practicum.shareit.item.model.Item;
-import org.mapstruct.Mapper;
+import ru.practicum.shareit.user.mapper.UserMapper;
 
-@Mapper(componentModel = "Spring")
-public interface ItemMapper {
-    ItemDto toItemDto(Item item);
+@UtilityClass
+public class ItemMapper {
+    public ItemDtoOut toItemDtoOut(Item item) {
+        return new ItemDtoOut(
+                item.getId(),
+                item.getName(),
+                item.getDescription(),
+                item.getAvailable(),
+                UserMapper.toUserDtoShort(item.getOwner())
+        );
+    }
 
-    Item toItem(ItemDto itemDto);
+    public ItemDtoShort toItemDtoShort(Item item) {
+        return new ItemDtoShort(
+                item.getId(),
+                item.getName()
+        );
+    }
 
-    Item toItem(CreateUpdateItemDto itemDto);
+    public Item toItem(ItemDtoIn itemDtoIn) {
+        return new Item(
+                itemDtoIn.getName(),
+                itemDtoIn.getDescription(),
+                itemDtoIn.getAvailable()
+        );
+    }
 }
