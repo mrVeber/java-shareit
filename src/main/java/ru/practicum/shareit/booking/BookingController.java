@@ -6,9 +6,12 @@ import org.springframework.web.bind.annotation.*;
 import ru.practicum.shareit.booking.dto.BookingDtoIn;
 import ru.practicum.shareit.booking.dto.BookingDtoOut;
 import ru.practicum.shareit.booking.service.BookingService;
+import org.springframework.validation.annotation.Validated;
 
 import java.util.List;
 import javax.validation.Valid;
+import javax.validation.constraints.Positive;
+import javax.validation.constraints.PositiveOrZero;
 
 import static ru.practicum.shareit.utils.Constants.X_SHARER_USER_ID;
 
@@ -16,6 +19,7 @@ import static ru.practicum.shareit.utils.Constants.X_SHARER_USER_ID;
 @RequiredArgsConstructor
 @RestController
 @RequestMapping(path = "/bookings")
+@Validated
 public class BookingController {
     private final BookingService bookingService;
 
@@ -40,16 +44,20 @@ public class BookingController {
     }
 
     @GetMapping
-    public List<BookingDtoOut> getAllByBooker(@RequestParam(name = "state", defaultValue = "ALL") String state,
+    public List<BookingDtoOut> getAllByBooker(@RequestParam(defaultValue = "1") @PositiveOrZero Integer from,
+                                              @RequestParam(defaultValue = "10") @Positive Integer size,
+                                              @RequestParam(name = "state", defaultValue = "ALL") String state,
                                               @RequestHeader(X_SHARER_USER_ID) long bookerId) {
         log.info("GET / ByBooker {}", bookerId);
-        return bookingService.getAllByBooker(state, bookerId);
+        return bookingService.getAllByBooker(from, size, state, bookerId);
     }
 
     @GetMapping("/owner")
-    public List<BookingDtoOut> getAllByOwner(@RequestParam(name = "state", defaultValue = "ALL") String state,
-                                             @RequestHeader(X_SHARER_USER_ID) long ownerId) {
+    public List<BookingDtoOut> getAllByOwner(@RequestParam(defaultValue = "1") @PositiveOrZero Integer from,
+                                             @RequestParam(defaultValue = "10") @Positive Integer size,
+                                             @RequestParam(name = "state", defaultValue = "ALL") String state,
+                                             @RequestHeader("X-Sharer-User-Id") long ownerId) {
         log.info("GET / ByOwner / {}", ownerId);
-        return bookingService.getAllByOwner(ownerId, state);
+        return bookingService.getAllByOwner(from, size, state, ownerId);
     }
 }

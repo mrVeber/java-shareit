@@ -17,13 +17,13 @@ import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.repository.ItemRepository;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.repository.UserRepository;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
 
 import java.util.List;
 import java.util.stream.Collectors;
-
-import static org.springframework.data.domain.Sort.Direction.DESC;
 
 @Slf4j
 @Transactional
@@ -89,38 +89,34 @@ public class BookingServiceImpl implements BookingService {
 
     @Transactional(readOnly = true)
     @Override
-    public List<BookingDtoOut> getAllByBooker(String state, long bookerId) {
-        User booker = getUser(bookerId);
-        List<Booking> bookings;
+    public List<BookingDtoOut> getAllByBooker(Integer from, Integer size, String state, long bookerId) {
         BookingState bookingState;
         try {
             bookingState = BookingState.valueOf(state);
         } catch (IllegalArgumentException e) {
             throw new UnsupportedStatusException("Unknown state: UNSUPPORTED_STATUS");
         }
+        getUser(bookerId);
+        List<Booking> bookings;
+        Pageable pageable = PageRequest.of(from / size, size, Sort.by("start").descending());
         switch (bookingState) {
             case ALL:
-                bookings = bookingRepository.findAllByBookerId(booker.getId(), Sort.by(DESC, "start"));
+                bookings = bookingRepository.findAllByBookerId(bookerId, pageable);
                 break;
             case CURRENT:
-                bookings = bookingRepository.findAllByBookerIdAndStateCurrent(booker.getId(),
-                        Sort.by(Sort.Direction.DESC, "start"));
+                bookings = bookingRepository.findAllByBookerIdAndStateCurrent(bookerId, pageable);
                 break;
             case PAST:
-                bookings = bookingRepository.findAllByBookerIdAndStatePast(booker.getId(),
-                        Sort.by(Sort.Direction.DESC, "start"));
+                bookings = bookingRepository.findAllByBookerIdAndStatePast(bookerId, pageable);
                 break;
             case FUTURE:
-                bookings = bookingRepository.findAllByBookerIdAndStateFuture(booker.getId(),
-                        Sort.by(Sort.Direction.DESC, "start"));
+                bookings = bookingRepository.findAllByBookerIdAndStateFuture(bookerId, pageable);
                 break;
             case WAITING:
-                bookings = bookingRepository.findAllByBookerIdAndStatus(booker.getId(),
-                        BookingStatus.WAITING, Sort.by(Sort.Direction.DESC, "start"));
+                bookings = bookingRepository.findAllByBookerIdAndStatus(bookerId, BookingStatus.WAITING, pageable);
                 break;
             case REJECTED:
-                bookings = bookingRepository.findAllByBookerIdAndStatus(booker.getId(),
-                        BookingStatus.REJECTED, Sort.by(DESC, "end"));
+                bookings = bookingRepository.findAllByBookerIdAndStatus(bookerId, BookingStatus.REJECTED, pageable);
                 break;
             default:
                 throw new UnsupportedStatusException("Unknown state: UNSUPPORTED_STATUS");
@@ -128,41 +124,37 @@ public class BookingServiceImpl implements BookingService {
         return bookings.stream().map(BookingMapper::toBookingDtoOut).collect(Collectors.toList());
     }
 
+
     @Transactional(readOnly = true)
     @Override
-    public List<BookingDtoOut> getAllByOwner(long ownerId, String state) {
-        User owner = getUser(ownerId);
-        List<Booking> bookings;
+    public List<BookingDtoOut> getAllByOwner(Integer from, Integer size, String state, long ownerId) {
         BookingState bookingState;
         try {
             bookingState = BookingState.valueOf(state);
         } catch (IllegalArgumentException e) {
             throw new UnsupportedStatusException("Unknown state: UNSUPPORTED_STATUS");
         }
+        getUser(ownerId);
+        List<Booking> bookings;
+        Pageable pageable = PageRequest.of(from / size, size, Sort.by("start").descending());
         switch (bookingState) {
             case ALL:
-                bookings = bookingRepository.findAllByOwnerId(owner.getId(),
-                        Sort.by(Sort.Direction.DESC, "start"));
+                bookings = bookingRepository.findAllByOwnerId(ownerId, pageable);
                 break;
             case CURRENT:
-                bookings = bookingRepository.findAllByOwnerIdAndStateCurrent(owner.getId(),
-                        Sort.by(Sort.Direction.DESC, "start"));
+                bookings = bookingRepository.findAllByOwnerIdAndStateCurrent(ownerId, pageable);
                 break;
             case PAST:
-                bookings = bookingRepository.findAllByOwnerIdAndStatePast(owner.getId(),
-                        Sort.by(Sort.Direction.DESC, "start"));
+                bookings = bookingRepository.findAllByOwnerIdAndStatePast(ownerId, pageable);
                 break;
             case FUTURE:
-                bookings = bookingRepository.findAllByOwnerIdAndStateFuture(owner.getId(),
-                        Sort.by(Sort.Direction.DESC, "start"));
+                bookings = bookingRepository.findAllByOwnerIdAndStateFuture(ownerId, pageable);
                 break;
             case WAITING:
-                bookings = bookingRepository.findAllByOwnerIdAndStatus(owner.getId(),
-                        BookingStatus.WAITING, Sort.by(Sort.Direction.DESC, "start"));
+                bookings = bookingRepository.findAllByOwnerIdAndStatus(ownerId, BookingStatus.WAITING, pageable);
                 break;
             case REJECTED:
-                bookings = bookingRepository.findAllByOwnerIdAndStatus(owner.getId(),
-                        BookingStatus.REJECTED, Sort.by(Sort.Direction.DESC, "start"));
+                bookings = bookingRepository.findAllByOwnerIdAndStatus(ownerId, BookingStatus.REJECTED, pageable);
                 break;
             default:
                 throw new UnsupportedStatusException("Unknown state: UNSUPPORTED_STATUS");

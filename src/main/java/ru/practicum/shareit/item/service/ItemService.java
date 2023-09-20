@@ -7,9 +7,9 @@ import java.util.List;
 public interface ItemService {
     ItemDtoOut getItemById(long itemId, long userId);
 
-    List<ItemDtoOut> getItemsByOwner(long userId);
+    List<ItemDtoOut> getItemsByOwner(Integer from, Integer size, long userId);
 
-    List<ItemDtoOut> getItemBySearch(String text);
+    List<ItemDtoOut> getItemBySearch(Integer from, Integer size, String text);
 
     ItemDtoOut saveNewItem(ItemDtoIn itemDtoIn, long userId);
 

@@ -12,6 +12,8 @@ import ru.practicum.shareit.item.service.ItemService;
 import ru.practicum.shareit.validators.Create;
 import ru.practicum.shareit.validators.Update;
 
+import javax.validation.constraints.Positive;
+import javax.validation.constraints.PositiveOrZero;
 import java.util.List;
 
 import static ru.practicum.shareit.utils.Constants.X_SHARER_USER_ID;
@@ -45,15 +47,19 @@ public class ItemController {
     }
 
     @GetMapping
-    public List<ItemDtoOut> getItemsByOwner(@RequestHeader(X_SHARER_USER_ID) long userId) {
+    public List<ItemDtoOut> getItemsByOwner(@RequestParam(defaultValue = "1") @PositiveOrZero Integer from,
+                                            @RequestParam(defaultValue = "10") @Positive Integer size,
+                                            @RequestHeader(X_SHARER_USER_ID) long userId) {
         log.info("GET / items / user {}", userId);
-        return itemService.getItemsByOwner(userId);
+        return itemService.getItemsByOwner(from, size, userId);
     }
 
     @GetMapping("/search")
-    public List<ItemDtoOut> getFilmBySearch(@RequestParam String text) {
+    public List<ItemDtoOut> getFilmBySearch(@RequestParam(defaultValue = "1") Integer from,
+                                            @RequestParam(defaultValue = "10") Integer size,
+                                            @RequestParam String text) {
         log.info("GET / search / {}", text);
-        return itemService.getItemBySearch(text);
+        return itemService.getItemBySearch(from, size, text);
     }
 
     @PostMapping("/{itemId}/comment")
