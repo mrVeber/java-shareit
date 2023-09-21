@@ -106,7 +106,7 @@ class BookingServiceImplTest {
         Assertions.assertThrows(NotAvailableToBookOwnItemsException.class, () ->
                 bookingService.saveNewBooking(bookingDtoIn, 1L));
     }
-    
+
     @Test
     void saveNewBooking_whenOwnerIsBooker_thenThrownException() {
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
