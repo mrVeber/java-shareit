@@ -7,6 +7,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.shareit.exception.model.WrongNumbersForPagingException;
 import ru.practicum.shareit.item.dto.ItemDtoOut;
 import ru.practicum.shareit.item.mapper.ItemMapper;
 import ru.practicum.shareit.item.repository.ItemRepository;
@@ -31,64 +32,67 @@ import static org.springframework.data.domain.Sort.Direction.DESC;
 @Service
 @RequiredArgsConstructor
 public class ItemRequestServiceImpl implements ItemRequestService {
-    private final ItemRequestRepository requestRepository;
-    private final UserRepository userRepository;
-    private final ItemRepository itemRepository;
+        private final ItemRequestRepository requestRepository;
+        private final UserRepository userRepository;
+        private final ItemRepository itemRepository;
 
-    @Override
-    @Transactional
-    public ItemRequestDtoOut saveNewRequest(ItemRequestDtoIn requestDtoIn, long userId) {
-        log.info("Создание нового запроса {}", requestDtoIn.getDescription());
-        User requestor = getUser(userId);
-        ItemRequest request = ItemRequestMapper.toItemRequest(requestDtoIn);
-        request.setCreated(LocalDateTime.now());
-        request.setRequestor(requestor);
-        return ItemRequestMapper.toItemRequestDtoOut(requestRepository.save(request));
-    }
-
-    @Override
-    public List<ItemRequestDtoOut> getRequestsByRequestor(long userId) {
-        log.info("Получение всех запросов по просителю с идентификатором {}", userId);
-        getUser(userId);
-        List<ItemRequest> requests = requestRepository.findAllByRequestorId(userId, Sort.by(DESC, "created"));
-        return addItems(requests);
-    }
-
-    @Override
-    public List<ItemRequestDtoOut> getAllRequests(Integer from, Integer size, long userId) {
-        log.info("Получение всех запросов постранично");
-        getUser(userId);
-        Pageable pageable = PageRequest.of(from / size, size, Sort.by("created").descending());
-        List<ItemRequest> requests = requestRepository.findAllByRequestorIdIsNot(userId, pageable);
-        return addItems(requests);
-    }
-
-    @Override
-    public ItemRequestDtoOut getRequestById(long requestId, long userId) {
-        log.info("Получение запроса по идентификатору {}", requestId);
-        getUser(userId);
-        ItemRequestDtoOut requestDtoOut = ItemRequestMapper.toItemRequestDtoOut(requestRepository.findById(requestId)
-                .orElseThrow(() ->
-                        new EntityNotFoundException(String.format("Объект класса %s не найден", ItemRequest.class))));
-        requestDtoOut.setItems(itemRepository.findAllByRequestId(requestId).stream()
-                .map(ItemMapper::toItemDtoOut).collect(Collectors.toList()));
-        return requestDtoOut;
-    }
-
-    private List<ItemRequestDtoOut> addItems(List<ItemRequest> requests) {
-        final List<ItemRequestDtoOut> requestsOut = new ArrayList<>();
-        for (ItemRequest request : requests) {
-            ItemRequestDtoOut requestDtoOut = ItemRequestMapper.toItemRequestDtoOut(request);
-            List<ItemDtoOut> items = itemRepository.findAllByRequestId(request.getId()).stream()
-                    .map(ItemMapper::toItemDtoOut).collect(Collectors.toList());
-            requestDtoOut.setItems(items);
-            requestsOut.add(requestDtoOut);
+        @Override
+        @Transactional
+        public ItemRequestDtoOut saveNewRequest(ItemRequestDtoIn requestDtoIn, long userId) {
+            log.info("Создание нового запроса {}", requestDtoIn.getDescription());
+            User requestor = getUser(userId);
+            ItemRequest request = ItemRequestMapper.toItemRequest(requestDtoIn);
+            request.setCreated(LocalDateTime.now());
+            request.setRequestor(requestor);
+            return ItemRequestMapper.toItemRequestDtoOut(requestRepository.save(request));
         }
-        return requestsOut;
-    }
 
-    private User getUser(long userId) {
-        return userRepository.findById(userId).orElseThrow(() ->
-                new EntityNotFoundException(String.format("Объект класса %s не найден", User.class)));
-    }
+        @Override
+        public List<ItemRequestDtoOut> getRequestsByRequestor(long userId) {
+            log.info("Получение всех запросов по просителю с идентификатором {}", userId);
+            getUser(userId);
+            List<ItemRequest> requests = requestRepository.findAllByRequestorId(userId, Sort.by(DESC, "created"));
+            return addItems(requests);
+        }
+
+        @Override
+        public List<ItemRequestDtoOut> getAllRequests(Integer from, Integer size, long userId) {
+            log.info("Получение всех запросов постранично");
+            if (from < 0 || size == 0) {
+                throw new WrongNumbersForPagingException("Неверные параметры для пагинации.");
+            }
+            getUser(userId);
+            Pageable pageable = PageRequest.of(from / size, size, Sort.by("created").descending());
+            List<ItemRequest> requests = requestRepository.findAllByRequestorIdIsNot(userId, pageable);
+            return addItems(requests);
+        }
+
+        @Override
+        public ItemRequestDtoOut getRequestById(long requestId, long userId) {
+            log.info("Получение запроса по идентификатору {}", requestId);
+            getUser(userId);
+            ItemRequestDtoOut requestDtoOut = ItemRequestMapper.toItemRequestDtoOut(requestRepository.findById(requestId)
+                    .orElseThrow(() ->
+                            new EntityNotFoundException(String.format("Объект класса %s не найден", ItemRequest.class))));
+            requestDtoOut.setItems(itemRepository.findAllByRequestId(requestId).stream()
+                    .map(ItemMapper::toItemDtoOut).collect(Collectors.toList()));
+            return requestDtoOut;
+        }
+
+        private List<ItemRequestDtoOut> addItems(List<ItemRequest> requests) {
+            final List<ItemRequestDtoOut> requestsOut = new ArrayList<>();
+            for (ItemRequest request : requests) {
+                ItemRequestDtoOut requestDtoOut = ItemRequestMapper.toItemRequestDtoOut(request);
+                List<ItemDtoOut> items = itemRepository.findAllByRequestId(request.getId()).stream()
+                        .map(ItemMapper::toItemDtoOut).collect(Collectors.toList());
+                requestDtoOut.setItems(items);
+                requestsOut.add(requestDtoOut);
+            }
+            return requestsOut;
+        }
+
+        private User getUser(long userId) {
+            return userRepository.findById(userId).orElseThrow(() ->
+                    new EntityNotFoundException(String.format("Объект класса %s не найден", User.class)));
+        }
 }
