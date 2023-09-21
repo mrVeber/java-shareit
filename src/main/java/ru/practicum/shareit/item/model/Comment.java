@@ -14,11 +14,11 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 public class Comment {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
     private String text;
 
     @ManyToOne
@@ -29,7 +29,6 @@ public class Comment {
     @JoinColumn(name = "author_id")
     private User author;
 
-    @Column(nullable = false)
     private LocalDateTime created;
 
 }

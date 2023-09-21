@@ -16,6 +16,8 @@ import javax.validation.constraints.Positive;
 import javax.validation.constraints.PositiveOrZero;
 import java.util.List;
 
+import static ru.practicum.shareit.utils.Constants.X_SHARER_USER_ID;
+
 @Validated
 @Slf4j
 @RequiredArgsConstructor
@@ -26,13 +28,13 @@ public class ItemRequestController {
 
     @PostMapping
     public ItemRequestDtoOut saveNewRequest(@Validated(Create.class) @RequestBody ItemRequestDtoIn requestDtoIn,
-                                            @RequestHeader("X-Sharer-User-Id") long userId) {
+                                            @RequestHeader(X_SHARER_USER_ID) long userId) {
         log.info("POST / requests {} / user {}", requestDtoIn.getDescription(), userId);
         return requestService.saveNewRequest(requestDtoIn, userId);
     }
 
     @GetMapping
-    public List<ItemRequestDtoOut> getRequestsByRequestor(@RequestHeader("X-Sharer-User-Id") long userId) {
+    public List<ItemRequestDtoOut> getRequestsByRequestor(@RequestHeader(X_SHARER_USER_ID) long userId) {
         log.info("GET / requests / requestor {}", userId);
         return requestService.getRequestsByRequestor(userId);
     }
@@ -40,14 +42,14 @@ public class ItemRequestController {
     @GetMapping("/all")
     public List<ItemRequestDtoOut> getAllRequests(@RequestParam(defaultValue = "1") @PositiveOrZero Integer from,
                                                   @RequestParam(defaultValue = "10") @Positive Integer size,
-                                                  @RequestHeader("X-Sharer-User-Id") long userId) {
+                                                  @RequestHeader(X_SHARER_USER_ID) long userId) {
         log.info("GET / requests");
         return requestService.getAllRequests(from, size, userId);
     }
 
     @GetMapping("/{requestId}")
     public ItemRequestDtoOut getRequestById(@PathVariable long requestId,
-                                            @RequestHeader("X-Sharer-User-Id") long userId) {
+                                            @RequestHeader(X_SHARER_USER_ID) long userId) {
         log.info("GET / request {} / user {}", requestId, userId);
         return requestService.getRequestById(requestId, userId);
     }

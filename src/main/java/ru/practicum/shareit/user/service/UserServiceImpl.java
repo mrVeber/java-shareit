@@ -20,15 +20,15 @@ import java.util.stream.Collectors;
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
 
-    @Transactional(readOnly = true)
     @Override
+    @Transactional(readOnly = true)
     public List<UserDto> getAllUsers() {
         log.info("Получение всех пользователей");
         return userRepository.findAll().stream().map(UserMapper::toUserDto).collect(Collectors.toList());
     }
 
-    @Transactional(readOnly = true)
     @Override
+    @Transactional(readOnly = true)
     public UserDto getUserById(long userId) {
         log.info("Получение пользователя по идентификатору {}", userId);
         User user = userRepository.findById(userId).orElseThrow(() ->

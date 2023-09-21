@@ -63,9 +63,9 @@ public class ItemController {
     }
 
     @PostMapping("/{itemId}/comment")
-    public CommentDtoOut addComment(@PathVariable long itemId,
-                                    @Validated(Create.class) @RequestBody CommentDtoIn commentDtoIn,
-                                    @RequestHeader(X_SHARER_USER_ID) long userId) {
+    public CommentDtoOut saveNewComment(@PathVariable long itemId,
+                                        @Validated(Create.class) @RequestBody CommentDtoIn commentDtoIn,
+                                        @RequestHeader(X_SHARER_USER_ID) long userId) {
         log.info("POST / comment / item {}", itemId);
         return itemService.saveNewComment(itemId, commentDtoIn, userId);
     }

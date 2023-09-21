@@ -14,7 +14,6 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.exception.model.EntityNotFoundException;
 import ru.practicum.shareit.exception.model.NotBookerException;
 import ru.practicum.shareit.exception.model.NotOwnerException;
-import ru.practicum.shareit.exception.model.WrongNumbersForPagingException;
 import ru.practicum.shareit.item.dto.CommentDtoIn;
 import ru.practicum.shareit.item.dto.CommentDtoOut;
 import ru.practicum.shareit.item.dto.ItemDtoIn;
@@ -89,35 +88,29 @@ public class ItemServiceImpl implements ItemService {
         return ItemMapper.toItemDtoOut(item);
     }
 
-    @Transactional(readOnly = true)
     @Override
+    @Transactional(readOnly = true)
     public ItemDtoOut getItemById(long itemId, long userId) {
         log.info("Получение вещи по идентификатору {}", itemId);
         final Item item = getItem(itemId);
         return addBookingsAndComments(item, userId);
     }
 
-    @Transactional(readOnly = true)
     @Override
+    @Transactional(readOnly = true)
     public List<ItemDtoOut> getItemsByOwner(Integer from, Integer size, long userId) {
         log.info("Получение вещи по владельцу {}", userId);
-        if (from < 0 || size == 0) {
-            throw new WrongNumbersForPagingException("Неверные параметры для пагинации.");
-        }
         getUser(userId);
         List<Item> items = itemRepository.findAllByOwnerId(userId, PageRequest.of(from / size, size));
         return addBookingsAndCommentsForList(items);
     }
 
-    @Transactional(readOnly = true)
     @Override
+    @Transactional(readOnly = true)
     public List<ItemDtoOut> getItemBySearch(Integer from, Integer size, String text) {
         log.info("Получение вещи по поиску {}", text);
         if (text.isBlank()) {
             return Collections.emptyList();
-        }
-        if (from < 0 || size == 0) {
-            throw new WrongNumbersForPagingException("Неверные параметры для пагинации.");
         }
         return itemRepository.search(text, PageRequest.of(from / size, size)).stream()
                 .map(ItemMapper::toItemDtoOut).collect(toList());
