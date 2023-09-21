@@ -38,7 +38,7 @@ class BookingServiceImplTest {
     @Mock
     private UserRepository userRepository;
     @InjectMocks
-    private BookingService bookingService;
+    private BookingServiceImpl bookingService;
 
     private final User user = new User(1L, "User", "user@mail.ru");
     private final User booker = new User(2L, "user2", "user2@mail.ru");
