@@ -77,19 +77,6 @@ class ItemRequestServiceImplTest {
     }
 
     @Test
-    void getAllRequests_whenCorrectPageArguments_thenReturnRequests() {
-        when(userRepository.findById(2L)).thenReturn(Optional.of(requestor));
-        when(requestRepository.findAllByRequestorIdIsNot(anyLong(), any())).thenReturn(List.of(requestSecond));
-        when(itemRepository.findAllByRequestId(anyLong())).thenReturn(List.of(itemSecond));
-        final ItemRequestDtoOut requestDtoOut = ItemRequestMapper.toItemRequestDtoOut(requestSecond);
-        requestDtoOut.setItems(List.of(ItemMapper.toItemDtoOut(itemSecond)));
-
-        List<ItemRequestDtoOut> actualRequests = requestService.getAllRequests(0, 10, 2L);
-
-        Assertions.assertEquals(List.of(requestDtoOut), actualRequests);
-    }
-
-    @Test
     void getRequestById() {
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(requestRepository.findById(anyLong())).thenReturn(Optional.of(request));

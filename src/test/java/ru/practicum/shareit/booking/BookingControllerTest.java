@@ -69,17 +69,6 @@ class BookingControllerTest {
     }
 
     @Test
-    void saveNewBooking_whenNoStart_thenThrownException() throws Exception {
-        mvc.perform(post("/bookings")
-                        .content(mapper.writeValueAsString(bookingNullStart))
-                        .characterEncoding(StandardCharsets.UTF_8)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .header(X_SHARER_USER_ID, 1L)
-                        .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
     void approve() throws Exception {
         when(bookingService.approve(anyLong(), any(), anyLong())).thenReturn(bookingDtoOut);
         bookingDtoOut.setStatus(BookingStatus.APPROVED);

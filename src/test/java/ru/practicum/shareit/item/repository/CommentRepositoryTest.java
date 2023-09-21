@@ -49,5 +49,4 @@ class CommentRepositoryTest {
         assertThat(comments.get(0).getText(), equalTo(comment.getText()));
         assertThat(comments.size(), equalTo(1));
     }
-
 }

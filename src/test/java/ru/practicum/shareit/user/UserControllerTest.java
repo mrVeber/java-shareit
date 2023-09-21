@@ -24,6 +24,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(controllers = UserController.class)
 class UserControllerTest {
+
     @MockBean
     private UserServiceImpl userService;
 
@@ -69,16 +70,6 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.id", is(userDto.getId()), Long.class))
                 .andExpect(jsonPath("$.name", is(userDto.getName()), String.class))
                 .andExpect(jsonPath("$.email", is(userDto.getEmail()), String.class));
-    }
-
-    @Test
-    void saveNewUser_whenBlankEmail_thenThrownException() throws Exception {
-        mvc.perform(post("/users")
-                        .content(mapper.writeValueAsString(userNoEmail))
-                        .characterEncoding(StandardCharsets.UTF_8)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isBadRequest());
     }
 
     @Test

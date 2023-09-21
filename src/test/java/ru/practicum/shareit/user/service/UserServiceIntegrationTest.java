@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.*;
         properties = "spring.datasource.username=test",
         webEnvironment = SpringBootTest.WebEnvironment.NONE)
 public class UserServiceIntegrationTest {
+
     private final EntityManager em;
     private final UserServiceImpl userService;
 

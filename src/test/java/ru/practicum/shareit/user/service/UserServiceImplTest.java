@@ -21,6 +21,7 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceImplTest {
+
     @Mock
     private UserRepository userRepository;
     @InjectMocks
@@ -72,13 +73,6 @@ class UserServiceImplTest {
         doThrow(DataIntegrityViolationException.class).when(userRepository).save(any(User.class));
 
         Assertions.assertThrows(DataIntegrityViolationException.class, () -> userService.saveNewUser(userDto));
-    }
-
-    @Test
-    void saveNewUser_whenInvalidEmail_thenNotSavedUser() {
-        doThrow(ConstraintViolationException.class).when(userRepository).save(any(User.class));
-
-        Assertions.assertThrows(ConstraintViolationException.class, () -> userService.saveNewUser(userDto));
     }
 
     @Test

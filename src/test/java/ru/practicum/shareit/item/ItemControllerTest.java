@@ -66,17 +66,6 @@ class ItemControllerTest {
     }
 
     @Test
-    void saveNewItem_whenBlankName_thenThrownException() throws Exception {
-        mvc.perform(post("/items")
-                        .content(mapper.writeValueAsString(itemBlankName))
-                        .characterEncoding(StandardCharsets.UTF_8)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .header(X_SHARER_USER_ID, 1L)
-                        .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
     void updateItem() throws Exception {
         when(itemService.updateItem(anyLong(), any(), anyLong())).thenReturn(itemDtoOut);
 

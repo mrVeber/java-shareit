@@ -60,5 +60,4 @@ class ItemRequestRepositoryTest {
         assertThat(requests.get(0).getId(), equalTo(request.getId()));
         assertThat(requests.size(), equalTo(1));
     }
-
 }

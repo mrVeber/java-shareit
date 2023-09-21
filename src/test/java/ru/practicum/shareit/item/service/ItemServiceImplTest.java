@@ -182,5 +182,4 @@ class ItemServiceImplTest {
         Assertions.assertThrows(NotBookerException.class, () ->
                 itemService.saveNewComment(2L, new CommentDtoIn("abc"), id));
     }
-
 }
