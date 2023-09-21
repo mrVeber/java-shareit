@@ -5,7 +5,6 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import ru.practicum.shareit.exception.model.*;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -18,17 +17,11 @@ public class ErrorHandler {
 
     @ExceptionHandler({MethodArgumentNotValidException.class, ItemIsNotAvailableException.class,
             WrongDatesException.class, NotBookerException.class,
-            UnsupportedStatusException.class, WrongNumbersForPagingException.class})
+            UnsupportedStatusException.class, ConstraintViolationException.class})
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorResponse validateException(RuntimeException e) {
         log.info(e.getMessage());
         return new ErrorResponse(e.getMessage());
-    }
-
-    @ExceptionHandler
-    public ResponseEntity<String> validateException(final ConstraintViolationException e) {
-        log.info(e.getMessage());
-        return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler({EntityNotFoundException.class, IllegalVewAndUpdateException.class,

@@ -15,6 +15,7 @@ import java.util.List;
 
 import static ru.practicum.shareit.utils.Constants.X_SHARER_USER_ID;
 
+@Validated
 @Slf4j
 @RequiredArgsConstructor
 @RestController

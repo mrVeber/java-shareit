@@ -7,7 +7,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import ru.practicum.shareit.exception.model.EntityNotFoundException;
-import ru.practicum.shareit.exception.model.WrongNumbersForPagingException;
 import ru.practicum.shareit.item.mapper.ItemMapper;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.repository.ItemRepository;
@@ -88,12 +87,6 @@ class ItemRequestServiceImplTest {
         List<ItemRequestDtoOut> actualRequests = requestService.getAllRequests(0, 10, 2L);
 
         Assertions.assertEquals(List.of(requestDtoOut), actualRequests);
-    }
-
-    @Test
-    void getAllRequests_whenIncorrectPageArguments_thenThrownException() {
-        Assertions.assertThrows(WrongNumbersForPagingException.class, () ->
-                requestService.getAllRequests(-1, 10, 2L));
     }
 
     @Test
