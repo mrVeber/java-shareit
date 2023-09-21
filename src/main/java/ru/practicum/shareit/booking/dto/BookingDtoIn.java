@@ -2,25 +2,22 @@ package ru.practicum.shareit.booking.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import ru.practicum.shareit.validators.Create;
+import ru.practicum.shareit.validators.EndAfterStartValidation;
 
-import javax.validation.constraints.Future;
 import javax.validation.constraints.FutureOrPresent;
 import javax.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 
 @Data
 @AllArgsConstructor
+@EndAfterStartValidation
 public class BookingDtoIn {
 
-    @FutureOrPresent(groups = {Create.class})
-    @NotNull(groups = {Create.class})
+    @FutureOrPresent
     private LocalDateTime start;
 
-    @Future(groups = {Create.class})
-    @NotNull(groups = {Create.class})
     private LocalDateTime end;
 
-    @NotNull(groups = {Create.class})
+    @NotNull
     private Long itemId;
 }
