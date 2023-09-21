@@ -34,6 +34,7 @@ public class BookingServiceImpl implements BookingService {
     private final UserRepository userRepository;
     private final ItemRepository itemRepository;
 
+    @Override
     public BookingDtoOut saveNewBooking(BookingDtoIn bookingDtoIn, long userId) {
         User booker = getUser(userId);
         Item item = getItem(bookingDtoIn.getItemId());
@@ -55,6 +56,7 @@ public class BookingServiceImpl implements BookingService {
         return BookingMapper.toBookingDtoOut(booking);
     }
 
+    @Override
     public BookingDtoOut approve(long bookingId, Boolean isApproved, long userId) {
         Booking booking = getById(bookingId);
         if (booking.getStatus() != BookingStatus.WAITING) {
@@ -71,6 +73,7 @@ public class BookingServiceImpl implements BookingService {
         return BookingMapper.toBookingDtoOut(booking);
     }
 
+    @Override
     @Transactional(readOnly = true)
     public BookingDtoOut getBookingById(long bookingId, long userId) {
         log.info("Получение бронирования по идентификатору {}", bookingId);
@@ -83,9 +86,9 @@ public class BookingServiceImpl implements BookingService {
         return BookingMapper.toBookingDtoOut(booking);
     }
 
+    @Override
     @Transactional(readOnly = true)
     public List<BookingDtoOut> getAllByBooker(Integer from, Integer size, String state, long bookerId) {
-        checkArgumentsForPaging(from,size);
         BookingState bookingState;
         try {
             bookingState = BookingState.valueOf(state);
@@ -120,9 +123,9 @@ public class BookingServiceImpl implements BookingService {
         return bookings.stream().map(BookingMapper::toBookingDtoOut).collect(Collectors.toList());
     }
 
+    @Override
     @Transactional(readOnly = true)
     public List<BookingDtoOut> getAllByOwner(Integer from, Integer size, String state, long ownerId) {
-        checkArgumentsForPaging(from,size);
         BookingState bookingState;
         try {
             bookingState = BookingState.valueOf(state);
@@ -157,6 +160,7 @@ public class BookingServiceImpl implements BookingService {
         return bookings.stream().map(BookingMapper::toBookingDtoOut).collect(Collectors.toList());
     }
 
+    @Override
     @Transactional(readOnly = true)
     public Booking getById(long bookingId) {
         log.info("Получение бронирования по идентификатору {}", bookingId);
@@ -172,11 +176,5 @@ public class BookingServiceImpl implements BookingService {
     private Item getItem(long itemId) {
         return itemRepository.findById(itemId).orElseThrow(() ->
                 new EntityNotFoundException(String.format("Объект класса %s не найден", Item.class)));
-    }
-
-    private void checkArgumentsForPaging(Integer from, Integer size) {
-        if (from < 0 || size == 0) {
-            throw new WrongNumbersForPagingException("Неверные параметры для пагинации.");
-        }
     }
 }
