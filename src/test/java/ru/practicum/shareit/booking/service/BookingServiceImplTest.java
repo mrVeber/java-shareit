@@ -19,6 +19,7 @@ import ru.practicum.shareit.item.repository.ItemRepository;
 import ru.practicum.shareit.user.mapper.UserMapper;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.repository.UserRepository;
+import ru.practicum.shareit.validators.EndAfterStartValidator;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -105,6 +106,15 @@ class BookingServiceImplTest {
 
         Assertions.assertThrows(NotAvailableToBookOwnItemsException.class, () ->
                 bookingService.saveNewBooking(bookingDtoIn, 1L));
+    }
+
+    @Test
+    void saveNewBooking_whenIncorrectDatesOfBooking_thenThrownException() {
+        when(userRepository.findById(2L)).thenReturn(Optional.of(booker));
+        when(itemRepository.findById(1L)).thenReturn(Optional.of(item));
+
+        Assertions.assertThrows(WrongDatesException.class, () ->
+                bookingService.saveNewBooking(bookingDtoInWrong, 2L));
     }
 
     @Test

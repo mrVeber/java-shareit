@@ -10,7 +10,6 @@ import org.springframework.validation.annotation.Validated;
 import ru.practicum.shareit.validators.Create;
 
 import java.util.List;
-import javax.validation.Valid;
 
 import static ru.practicum.shareit.utils.Constants.X_SHARER_USER_ID;
 
@@ -18,12 +17,11 @@ import static ru.practicum.shareit.utils.Constants.X_SHARER_USER_ID;
 @RequiredArgsConstructor
 @RestController
 @RequestMapping(path = "/bookings")
-@Validated
 public class BookingController {
     private final BookingService bookingService;
 
     @PostMapping
-    public BookingDtoOut saveNewBooking(@Valid @Validated(Create.class) @RequestBody BookingDtoIn bookingDtoIn,
+    public BookingDtoOut saveNewBooking(@Validated(Create.class) @RequestBody BookingDtoIn bookingDtoIn,
                                         @RequestHeader(X_SHARER_USER_ID) long userId) {
         log.info("POST / bookings");
         return bookingService.saveNewBooking(bookingDtoIn, userId);
