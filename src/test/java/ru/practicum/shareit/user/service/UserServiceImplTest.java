@@ -13,7 +13,6 @@ import ru.practicum.shareit.user.repository.UserRepository;
 import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.model.User;
 
-import javax.validation.ConstraintViolationException;
 import java.util.List;
 import java.util.Optional;
 
