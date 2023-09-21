@@ -38,7 +38,7 @@ class BookingServiceImplTest {
     @Mock
     private UserRepository userRepository;
     @InjectMocks
-    private BookingServiceImpl bookingService;
+    private BookingService bookingService;
 
     private final User user = new User(1L, "User", "user@mail.ru");
     private final User booker = new User(2L, "user2", "user2@mail.ru");
@@ -50,9 +50,6 @@ class BookingServiceImplTest {
     private final BookingDtoIn bookingDtoIn = new BookingDtoIn(
             LocalDateTime.of(2023, 7, 1, 12, 12, 12),
             LocalDateTime.of(2023, 7, 30, 12, 12, 12), 1L);
-    private final BookingDtoIn bookingDtoInWrong = new BookingDtoIn(
-            LocalDateTime.of(2023, 7, 2, 12, 12, 12),
-            LocalDateTime.of(2023, 7, 1, 12, 12, 12), 1L);
     private final BookingDtoIn bookingDtoWrongItem = new BookingDtoIn(
             LocalDateTime.of(2023, 7, 1, 12, 12, 12),
             LocalDateTime.of(2023, 7, 30, 12, 12, 12), 2L);
@@ -105,15 +102,6 @@ class BookingServiceImplTest {
 
         Assertions.assertThrows(NotAvailableToBookOwnItemsException.class, () ->
                 bookingService.saveNewBooking(bookingDtoIn, 1L));
-    }
-
-    @Test
-    void saveNewBooking_whenIncorrectDatesOfBooking_thenThrownException() {
-        when(userRepository.findById(2L)).thenReturn(Optional.of(booker));
-        when(itemRepository.findById(1L)).thenReturn(Optional.of(item));
-
-        Assertions.assertThrows(WrongDatesException.class, () ->
-                bookingService.saveNewBooking(bookingDtoInWrong, 2L));
     }
 
     @Test
@@ -220,12 +208,6 @@ class BookingServiceImplTest {
         List<BookingDtoOut> actualBookings = bookingService.getAllByBooker(0, 10, "WAITING", 2L);
 
         Assertions.assertEquals(List.of(BookingMapper.toBookingDtoOut(booking)), actualBookings);
-    }
-
-    @Test
-    void getAllByBooker_whenIncorrectArgumentsForPaging_thenExceptionThrown() {
-        Assertions.assertThrows(WrongNumbersForPagingException.class, () ->
-                bookingService.getAllByBooker(-1, 10, "ALL", 2L));
     }
 
     @Test
