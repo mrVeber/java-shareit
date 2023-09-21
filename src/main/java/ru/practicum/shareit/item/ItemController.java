@@ -55,8 +55,8 @@ public class ItemController {
     }
 
     @GetMapping("/search")
-    public List<ItemDtoOut> getFilmBySearch(@RequestParam(defaultValue = "1") Integer from,
-                                            @RequestParam(defaultValue = "10") Integer size,
+    public List<ItemDtoOut> getItemBySearch(@RequestParam(defaultValue = "1") @PositiveOrZero Integer from,
+                                            @RequestParam(defaultValue = "10") @Positive Integer size,
                                             @RequestParam String text) {
         log.info("GET / search / {}", text);
         return itemService.getItemBySearch(from, size, text);
