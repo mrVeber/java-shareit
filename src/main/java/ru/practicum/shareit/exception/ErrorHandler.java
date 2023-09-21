@@ -6,7 +6,6 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.http.HttpStatus;
 import ru.practicum.shareit.exception.model.*;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
@@ -17,18 +16,12 @@ import javax.validation.ConstraintViolationException;
 public class ErrorHandler {
 
     @ExceptionHandler({MethodArgumentNotValidException.class, ItemIsNotAvailableException.class,
-            WrongDatesException.class, BookingCanBeApprovedOnlyByOwnerException.class,
-            UnsupportedStatusException.class, NotBookerException.class})
+            WrongDatesException.class, NotBookerException.class,
+            UnsupportedStatusException.class, ConstraintViolationException.class})
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorResponse validateException(RuntimeException e) {
         log.info(e.getMessage());
         return new ErrorResponse(e.getMessage());
-    }
-
-    @ExceptionHandler
-    public ResponseEntity<String> validateException(final ConstraintViolationException e) {
-        log.info(e.getMessage());
-        return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler({EntityNotFoundException.class, IllegalVewAndUpdateException.class,
