@@ -24,7 +24,7 @@ class UserServiceImplTest {
     @Mock
     private UserRepository userRepository;
     @InjectMocks
-    private UserService userService;
+    private UserServiceImpl userService;
 
     private final long id = 1L;
     private final UserDto userDto = new UserDto(id, "User", "user@mail.ru");

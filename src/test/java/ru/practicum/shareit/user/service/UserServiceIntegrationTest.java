@@ -21,7 +21,7 @@ import static org.hamcrest.Matchers.*;
         webEnvironment = SpringBootTest.WebEnvironment.NONE)
 public class UserServiceIntegrationTest {
     private final EntityManager em;
-    private final UserService userService;
+    private final UserServiceImpl userService;
 
     @Test
     void saveNewUser() {

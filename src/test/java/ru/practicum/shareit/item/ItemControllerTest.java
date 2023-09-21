@@ -9,7 +9,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import ru.practicum.shareit.item.dto.CommentDtoOut;
 import ru.practicum.shareit.item.dto.ItemDtoOut;
-import ru.practicum.shareit.item.service.ItemService;
+import ru.practicum.shareit.item.service.ItemServiceImpl;
 import ru.practicum.shareit.user.dto.UserDtoShort;
 
 import java.nio.charset.StandardCharsets;
@@ -26,7 +26,7 @@ import static ru.practicum.shareit.utils.Constants.X_SHARER_USER_ID;
 @WebMvcTest(controllers = ItemController.class)
 class ItemControllerTest {
     @MockBean
-    private ItemService itemService;
+    private ItemServiceImpl itemService;
 
     @Autowired
     private ObjectMapper mapper;

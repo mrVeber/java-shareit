@@ -7,7 +7,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import ru.practicum.shareit.item.dto.ItemDtoIn;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.dto.UserDto;
-import ru.practicum.shareit.user.service.UserService;
+import ru.practicum.shareit.user.service.UserServiceImpl;
 
 import javax.persistence.EntityManager;
 import javax.persistence.TypedQuery;
@@ -24,8 +24,8 @@ import static org.hamcrest.Matchers.equalTo;
         webEnvironment = SpringBootTest.WebEnvironment.NONE)
 public class ItemServiceIntegrationTest {
     private final EntityManager em;
-    private final ItemService itemService;
-    private final UserService userService;
+    private final ItemServiceImpl itemService;
+    private final UserServiceImpl userService;
 
     @Test
     void saveNewItem() {

@@ -44,7 +44,7 @@ class ItemServiceImplTest {
     @Mock
     private CommentRepository commentRepository;
     @InjectMocks
-    private ItemService itemService;
+    private ItemServiceImpl itemService;
 
     private final long id = 1L;
     private final User user = new User(id, "User", "user@mail.ru");

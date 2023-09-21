@@ -35,7 +35,7 @@ class ItemRequestServiceImplTest {
     @Mock
     private ItemRepository itemRepository;
     @InjectMocks
-    private ItemRequestService requestService;
+    private ItemRequestServiceImpl requestService;
 
     private final User requestor = new User(2L, "user2", "user2@mail.ru");
     private final User user = new User(1L, "User", "user@mail.ru");

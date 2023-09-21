@@ -10,7 +10,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import ru.practicum.shareit.booking.dto.BookingDtoIn;
 import ru.practicum.shareit.booking.dto.BookingDtoOut;
 import ru.practicum.shareit.booking.model.BookingStatus;
-import ru.practicum.shareit.booking.service.BookingService;
+import ru.practicum.shareit.booking.service.BookingServiceImpl;
 import ru.practicum.shareit.item.dto.ItemDtoShort;
 import ru.practicum.shareit.user.dto.UserDtoShort;
 
@@ -30,7 +30,7 @@ import static ru.practicum.shareit.utils.Constants.X_SHARER_USER_ID;
 class BookingControllerTest {
 
     @MockBean
-    private BookingService bookingService;
+    private BookingServiceImpl bookingService;
 
     @Autowired
     private ObjectMapper mapper;

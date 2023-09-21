@@ -8,7 +8,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import ru.practicum.shareit.request.dto.ItemRequestDtoOut;
-import ru.practicum.shareit.request.service.ItemRequestService;
+import ru.practicum.shareit.request.service.ItemRequestServiceImpl;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
@@ -26,7 +26,7 @@ import static ru.practicum.shareit.utils.Constants.X_SHARER_USER_ID;
 class ItemRequestControllerTest {
 
     @MockBean
-    private ItemRequestService requestService;
+    private ItemRequestServiceImpl requestService;
 
     @Autowired
     private ObjectMapper mapper;
