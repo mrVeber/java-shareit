@@ -13,6 +13,7 @@ import ru.practicum.shareit.user.repository.UserRepository;
 import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.model.User;
 
+import javax.validation.ConstraintViolationException;
 import java.util.List;
 import java.util.Optional;
 
@@ -72,6 +73,13 @@ class UserServiceImplTest {
         doThrow(DataIntegrityViolationException.class).when(userRepository).save(any(User.class));
 
         Assertions.assertThrows(DataIntegrityViolationException.class, () -> userService.saveNewUser(userDto));
+    }
+
+    @Test
+    void saveNewUser_whenInvalidEmail_thenNotSavedUser() {
+        doThrow(ConstraintViolationException.class).when(userRepository).save(any(User.class));
+
+        Assertions.assertThrows(ConstraintViolationException.class, () -> userService.saveNewUser(userDto));
     }
 
     @Test

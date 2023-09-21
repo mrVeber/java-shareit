@@ -25,7 +25,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static ru.practicum.shareit.utils.Constants.X_SHARER_USER_ID;
 
-
 @WebMvcTest(controllers = BookingController.class)
 class BookingControllerTest {
 
@@ -40,10 +39,6 @@ class BookingControllerTest {
 
     private final BookingDtoIn bookingDto = new BookingDtoIn(
             LocalDateTime.now().plusDays(1),
-            LocalDateTime.now().plusDays(2),
-            1L);
-    private final BookingDtoIn bookingNullStart = new BookingDtoIn(
-            null,
             LocalDateTime.now().plusDays(2),
             1L);
     private final BookingDtoOut bookingDtoOut = new BookingDtoOut(

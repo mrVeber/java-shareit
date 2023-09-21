@@ -142,6 +142,12 @@ class ItemServiceImplTest {
     }
 
     @Test
+    void getItemsByOwner_IncorrectArgumentsForPaging_thenExceptionThrown() {
+        Assertions.assertThrows(WrongNumbersForPagingException.class, () ->
+                itemService.getItemsByOwner(-1, 10, id));
+    }
+
+    @Test
     void getItemBySearch_whenTextNotBlank_thenReturnItems() {
         when(itemRepository.search(any(), any())).thenReturn(List.of(item));
 
@@ -160,6 +166,12 @@ class ItemServiceImplTest {
         Assertions.assertTrue(targetItems.isEmpty());
         Assertions.assertEquals(0, targetItems.size());
         verify(itemRepository, never()).search(any(), any());
+    }
+
+    @Test
+    void getItemBySearch_IncorrectArgumentsForPaging_thenExceptionThrown() {
+        Assertions.assertThrows(WrongNumbersForPagingException.class, () ->
+                itemService.getItemsByOwner(0, 0, id));
     }
 
     @Test

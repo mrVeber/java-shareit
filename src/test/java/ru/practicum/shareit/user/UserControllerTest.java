@@ -35,7 +35,6 @@ class UserControllerTest {
     private MockMvc mvc;
 
     private final UserDto userDto = new UserDto(1L, "User", "user@mail.ru");
-    private final UserDto userNoEmail = new UserDto(1L, "User", "");
 
     @Test
     void getAllUsers() throws Exception {

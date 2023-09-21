@@ -40,12 +40,6 @@ class ItemControllerTest {
             "cool item",
             true,
             new UserDtoShort(1L, "User"));
-    private final ItemDtoOut itemBlankName = new ItemDtoOut(
-            1,
-            "",
-            "cool item",
-            true,
-            new UserDtoShort(1L, "User"));
 
     @Test
     void saveNewItem() throws Exception {
