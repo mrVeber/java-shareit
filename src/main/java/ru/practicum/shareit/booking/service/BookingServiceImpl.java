@@ -35,19 +35,14 @@ public class BookingServiceImpl implements BookingService {
     private final UserRepository userRepository;
     private final ItemRepository itemRepository;
 
-    @Override
     public BookingDtoOut saveNewBooking(BookingDtoIn bookingDtoIn, long userId) {
         User booker = getUser(userId);
         Item item = getItem(bookingDtoIn.getItemId());
         if (!item.getAvailable()) {
             throw new ItemIsNotAvailableException("Вещь недоступна для брони");
         }
-        if (booker.getId() == item.getOwner().getId()) {
+        if (userId == item.getOwner().getId()) {
             throw new NotAvailableToBookOwnItemsException("Функция бронировать собственную вещь отсутствует");
-        }
-        if (!bookingDtoIn.getEnd().isAfter(bookingDtoIn.getStart()) ||
-                bookingDtoIn.getStart().isBefore(LocalDateTime.now())) {
-            throw new WrongDatesException("Дата начала бронирования должна быть раньше даты возврата");
         }
         Booking booking = new Booking();
         booking.setItem(item);
@@ -57,17 +52,16 @@ public class BookingServiceImpl implements BookingService {
         return BookingMapper.toBookingDtoOut(booking);
     }
 
-    @Override
     public BookingDtoOut approve(long bookingId, Boolean isApproved, long userId) {
-        User owner = getUser(userId);
         Booking booking = getById(bookingId);
-        Item item = getItem(booking.getItem().getId());
         if (booking.getStatus() != BookingStatus.WAITING) {
             throw new ItemIsNotAvailableException("Вещь уже забронирована");
         }
-        if (owner.getId() != item.getOwner().getId()) {
+        Item item = getItem(booking.getItem().getId());
+        if (userId != item.getOwner().getId()) {
             throw new IllegalVewAndUpdateException("Подтвердить бронирование может только собственник вещи");
         }
+        getUser(userId);
         BookingStatus newBookingStatus = isApproved ? BookingStatus.APPROVED : BookingStatus.REJECTED;
         booking.setStatus(newBookingStatus);
         log.info("Бронирование с идентификатором {} обновлено", booking.getId());
@@ -75,20 +69,18 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Transactional(readOnly = true)
-    @Override
     public BookingDtoOut getBookingById(long bookingId, long userId) {
         log.info("Получение бронирования по идентификатору {}", bookingId);
         Booking booking = getById(bookingId);
         User booker = booking.getBooker();
         User owner = getUser(booking.getItem().getOwner().getId());
         if (booker.getId() != userId && owner.getId() != userId) {
-            throw new IllegalVewAndUpdateException("Только автор или владелец может просматривать данное броинрование");
+            throw new IllegalVewAndUpdateException("Только автор или владелец может просматривать данное бронирование");
         }
         return BookingMapper.toBookingDtoOut(booking);
     }
 
     @Transactional(readOnly = true)
-    @Override
     public List<BookingDtoOut> getAllByBooker(Integer from, Integer size, String state, long bookerId) {
         BookingState bookingState;
         try {
@@ -124,9 +116,7 @@ public class BookingServiceImpl implements BookingService {
         return bookings.stream().map(BookingMapper::toBookingDtoOut).collect(Collectors.toList());
     }
 
-
     @Transactional(readOnly = true)
-    @Override
     public List<BookingDtoOut> getAllByOwner(Integer from, Integer size, String state, long ownerId) {
         BookingState bookingState;
         try {
