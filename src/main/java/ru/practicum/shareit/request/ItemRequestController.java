@@ -7,50 +7,53 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import ru.practicum.shareit.request.dto.ItemRequestDtoIn;
-import ru.practicum.shareit.request.dto.ItemRequestDtoOut;
+import ru.practicum.shareit.request.dto.RequestInputDto;
+import ru.practicum.shareit.request.dto.RequestOutputDto;
 import ru.practicum.shareit.request.service.ItemRequestService;
 import ru.practicum.shareit.validators.Create;
 
-import javax.validation.constraints.Positive;
-import javax.validation.constraints.PositiveOrZero;
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Min;
 import java.util.List;
 
 import static ru.practicum.shareit.utils.Constants.X_SHARER_USER_ID;
 
-@Validated
 @Slf4j
-@RequiredArgsConstructor
 @RestController
-@RequestMapping("/requests")
+@RequiredArgsConstructor
+@RequestMapping(path = "/requests")
+@Validated
 public class ItemRequestController {
     private final ItemRequestService requestService;
 
     @PostMapping
-    public ItemRequestDtoOut saveNewRequest(@Validated(Create.class) @RequestBody ItemRequestDtoIn requestDtoIn,
-                                            @RequestHeader(X_SHARER_USER_ID) long userId) {
-        log.info("POST / requests {} / user {}", requestDtoIn.getDescription(), userId);
-        return requestService.saveNewRequest(requestDtoIn, userId);
+    public RequestOutputDto createRequest(@Validated(Create.class) @RequestBody RequestInputDto requestInputDto,
+                                          @RequestHeader(X_SHARER_USER_ID) long userId) {
+
+        log.info(" RequestController -  createRequest(). Создан {}", requestInputDto.toString());
+        return requestService.createRequest(requestInputDto, userId);
     }
 
     @GetMapping
-    public List<ItemRequestDtoOut> getRequestsByRequestor(@RequestHeader(X_SHARER_USER_ID) long userId) {
-        log.info("GET / requests / requestor {}", userId);
-        return requestService.getRequestsByRequestor(userId);
+    public List<RequestOutputDto> getRequestsByAuthor(@RequestHeader(X_SHARER_USER_ID) long userId) {
+
+        List<RequestOutputDto> requestOutputDtos = requestService.getRequestsByAuthor(userId);
+        log.info(" RequestController -  getRequestsByAuthor(). Возвращен список из {} запросов", requestOutputDtos.size());
+        return requestOutputDtos;
     }
 
     @GetMapping("/all")
-    public List<ItemRequestDtoOut> getAllRequests(@RequestParam(defaultValue = "1") @PositiveOrZero Integer from,
-                                                  @RequestParam(defaultValue = "10") @Positive Integer size,
-                                                  @RequestHeader(X_SHARER_USER_ID) long userId) {
-        log.info("GET / requests");
-        return requestService.getAllRequests(from, size, userId);
+    public List<RequestOutputDto> getAllRequests(@RequestHeader(X_SHARER_USER_ID) Long userId,
+                                                 @RequestParam(name = "from", defaultValue = "0") @Min(0) Integer from,
+                                                 @RequestParam(name = "size", defaultValue = "10") @Min(1) @Max(100) Integer size) {
+        return requestService.getAllRequests(userId, from, size);
     }
 
     @GetMapping("/{requestId}")
-    public ItemRequestDtoOut getRequestById(@PathVariable long requestId,
-                                            @RequestHeader(X_SHARER_USER_ID) long userId) {
-        log.info("GET / request {} / user {}", requestId, userId);
-        return requestService.getRequestById(requestId, userId);
+    public RequestOutputDto getRequestById(@RequestHeader(X_SHARER_USER_ID) long userId,
+                                           @PathVariable(name = "requestId") Long requestId) {
+        RequestOutputDto requestOutputDto = requestService.getRequestById(requestId, userId);
+        log.info(" RequestController -  getRequestById(). Возвращен {}", requestOutputDto.toString());
+        return requestOutputDto;
     }
 }

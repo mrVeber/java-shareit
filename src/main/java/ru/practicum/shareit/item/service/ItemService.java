@@ -5,16 +5,18 @@ import ru.practicum.shareit.item.dto.*;
 import java.util.List;
 
 public interface ItemService {
-    ItemDtoOut getItemById(long itemId, long userId);
+    ItemDto createItem(ItemDto itemDto, long userId);
 
-    List<ItemDtoOut> getItemsByOwner(Integer from, Integer size, long userId);
+    ItemDto update(ItemDto itemDto, long itemId, Long userIdInHeader);
 
-    List<ItemDtoOut> getItemBySearch(Integer from, Integer size, String text);
+    List<ItemWithBookingAndCommentsDto> getAllByUserId(long ownerId, int from, int size);
 
-    ItemDtoOut saveNewItem(ItemDtoIn itemDtoIn, long userId);
+    ItemWithBookingAndCommentsDto getById(long id, long userId);
 
-    ItemDtoOut updateItem(long itemId, ItemDtoIn itemDtoIn, long userId);
+    List<ItemDto> search(String text, int from, int size);
 
-    CommentDtoOut saveNewComment(long itemId, CommentDtoIn commentDtoIn, long userId);
+    CommentDtoOutput createComment(CommentDtoInput commentDto, Long userId, Long itemId);
+
+
 
 }

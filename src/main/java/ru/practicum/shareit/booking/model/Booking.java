@@ -8,22 +8,22 @@ import javax.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "bookings")
-@Getter
 @Setter
-@ToString
-@AllArgsConstructor
+@Getter
 @NoArgsConstructor
+@AllArgsConstructor
+@Table(name = "bookings")
 public class Booking {
+
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long id;
+    private Long id;
 
-    @Column(name = "start_date")
+    @Column(name = "start_time")
     private LocalDateTime start;
 
-    @Column(name = "end_date")
+    @Column(name = "end_time")
     private LocalDateTime end;
 
     @ManyToOne
@@ -31,9 +31,10 @@ public class Booking {
     private Item item;
 
     @ManyToOne
-    @JoinColumn(name = "booker_id")
+    @JoinColumn(name = "booker")
     private User booker;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "status")
     private BookingStatus status;
 }

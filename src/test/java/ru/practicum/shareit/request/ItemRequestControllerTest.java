@@ -1,101 +1,218 @@
 package ru.practicum.shareit.request;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.AccessLevel;
+import lombok.experimental.FieldDefaults;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import ru.practicum.shareit.request.dto.ItemRequestDtoOut;
+import ru.practicum.shareit.item.dto.ItemShortForRequest;
+import ru.practicum.shareit.item.mapper.ItemMapper;
+import ru.practicum.shareit.item.model.Item;
+import ru.practicum.shareit.request.dto.RequestInputDto;
+import ru.practicum.shareit.request.dto.RequestOutputDto;
+import ru.practicum.shareit.request.model.ItemRequest;
 import ru.practicum.shareit.request.service.ItemRequestServiceImpl;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
-import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-import static ru.practicum.shareit.utils.Constants.X_SHARER_USER_ID;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(controllers = ItemRequestController.class)
-class ItemRequestControllerTest {
+@ExtendWith(MockitoExtension.class)
+@AutoConfigureMockMvc
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class ItemRequestControllerTest {
+
+    @Autowired
+    ObjectMapper mapper;
 
     @MockBean
-    private ItemRequestServiceImpl requestService;
+    ItemRequestServiceImpl requestService;
 
     @Autowired
-    private ObjectMapper mapper;
-
-    @Autowired
-    private MockMvc mvc;
-
-    private final ItemRequestDtoOut requestDto = new ItemRequestDtoOut(
-            1L,
-            "description",
-            2L,
-            LocalDateTime.of(2023, 7, 1, 12, 12, 12));
+    MockMvc mvc;
 
     @Test
-    void saveNewRequest() throws Exception {
-        when(requestService.saveNewRequest(any(), anyLong())).thenReturn(requestDto);
+    void createRequestTest() throws Exception {
+        LocalDateTime time = LocalDateTime.now();
+        ItemRequest request = new ItemRequest(1l,
+                " descriptionOfRequest1",
+                1l,
+                LocalDateTime.now());
+        Long userId = 1L;
+        RequestInputDto requestInputDto = new RequestInputDto(
+                " descriptionOfRequest1");
+        List<ItemShortForRequest> itemShortForRequests = new ArrayList<>();
+        Item item1 = new Item(1L, "item1", "description Item1", true, 1L, request);
+        ItemShortForRequest itemShortForRequest1 = ItemMapper.toItemShortForRequest(item1);
 
-        mvc.perform(post("/requests")
-                        .content(mapper.writeValueAsString(requestDto))
+        Item item2 = new Item(2L, "item2", "description Item2", true, 1L, request);
+        ItemShortForRequest itemShortForRequest2 = ItemMapper.toItemShortForRequest(item2);
+        itemShortForRequests.add(itemShortForRequest1);
+        itemShortForRequests.add(itemShortForRequest2);
+
+        RequestOutputDto requestOutputDto = new RequestOutputDto(1L,
+                requestInputDto.getDescription(),
+                userId,
+                time,
+                itemShortForRequests);
+
+        when(requestService.createRequest(any(), anyLong())).thenReturn(requestOutputDto);
+
+        mvc.perform(post("/requests").header("X-Sharer-User-Id", userId)
+                        .content(mapper.writeValueAsString(requestOutputDto))
                         .characterEncoding(StandardCharsets.UTF_8)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .header(X_SHARER_USER_ID, 1L)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(content().json(mapper.writeValueAsString(requestDto)))
-                .andExpect(jsonPath("$.id", is(requestDto.getId()), Long.class))
-                .andExpect(jsonPath("$.description", is(requestDto.getDescription()), String.class))
-                .andExpect(jsonPath("$.requestorId", is(requestDto.getRequestorId()), Long.class));
+                .andExpect(content().json(mapper.writeValueAsString(requestOutputDto)))
+        ;
     }
 
     @Test
-    void getRequestsByRequestor() throws Exception {
-        when(requestService.getRequestsByRequestor(anyLong())).thenReturn(List.of(requestDto));
+    void getRequestsByAuthorTest() throws Exception {
+        Long userId = 1l;
+        RequestOutputDto requestOutputDto1 = new RequestOutputDto(1l,
+                " descriptionOfRequest1",
+                1l,
+                LocalDateTime.now(),
+                new ArrayList<>());
+        RequestOutputDto requestOutputDto2 = new RequestOutputDto(2l,
+                " descriptionOfRequest1",
+                1l,
+                LocalDateTime.now(),
+                new ArrayList<>());
 
-        mvc.perform(get("/requests")
-                        .content(mapper.writeValueAsString(requestDto))
+        List<RequestOutputDto> requestOutputDtos = new ArrayList<>();
+        requestOutputDtos.add(requestOutputDto1);
+        requestOutputDtos.add(requestOutputDto2);
+
+        when(requestService.getRequestsByAuthor(anyLong())).thenReturn(requestOutputDtos);
+
+        mvc.perform(get("/requests").header("X-Sharer-User-Id", userId)
+                        .content(mapper.writeValueAsString(requestOutputDtos))
                         .characterEncoding(StandardCharsets.UTF_8)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .header(X_SHARER_USER_ID, 1L)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(content().json(mapper.writeValueAsString(List.of(requestDto))));
+                .andExpect(content().json(mapper.writeValueAsString(requestOutputDtos)))
+        ;
     }
 
     @Test
-    void getAllRequests() throws Exception {
-        when(requestService.getAllRequests(anyInt(), anyInt(), anyLong())).thenReturn(List.of(requestDto));
+    void getAllRequestsTest() throws Exception {
+        Long userId = 1l;
+        RequestOutputDto requestOutputDto1 = new RequestOutputDto(1l,
+                " descriptionOfRequest1",
+                1l,
+                LocalDateTime.now(),
+                new ArrayList<>());
+        RequestOutputDto requestOutputDto2 = new RequestOutputDto(2l,
+                " descriptionOfRequest1",
+                1l,
+                LocalDateTime.now(),
+                new ArrayList<>());
 
-        mvc.perform(get("/requests/all")
-                        .content(mapper.writeValueAsString(requestDto))
+        List<RequestOutputDto> requestOutputDtos = new ArrayList<>();
+        requestOutputDtos.add(requestOutputDto1);
+        requestOutputDtos.add(requestOutputDto2);
+
+        when(requestService.getAllRequests(anyLong(), anyInt(), anyInt())).thenReturn(requestOutputDtos);
+
+        mvc.perform(get("/requests/all").header("X-Sharer-User-Id", userId)
+                        .content(mapper.writeValueAsString(requestOutputDtos))
                         .characterEncoding(StandardCharsets.UTF_8)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .header(X_SHARER_USER_ID, 1L)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(content().json(mapper.writeValueAsString(List.of(requestDto))));
+                .andExpect(content().json(mapper.writeValueAsString(requestOutputDtos)))
+        ;
     }
 
     @Test
-    void getRequestById() throws Exception {
-        when(requestService.getRequestById(anyLong(), anyLong())).thenReturn(requestDto);
+    void getRequestByIdTest() throws Exception {
+        ItemRequest request = new ItemRequest(1l,
+                " descriptionOfRequest1",
+                1l,
+                LocalDateTime.now());
+        Long userId = 1L;
+        Long requestId = 1L;
+        LocalDateTime time = LocalDateTime.now();
+        RequestInputDto requestInputDto = new RequestInputDto(
+                " descriptionOfRequest1"
+        );
+        List<ItemShortForRequest> itemShortForRequests = new ArrayList<>();
+        Item item1 = new Item(1L, "item1", "description Item1", true, 1L, request);
+        ItemShortForRequest itemShortForRequest1 = ItemMapper.toItemShortForRequest(item1);
 
-        mvc.perform(get("/requests/1")
-                        .content(mapper.writeValueAsString(requestDto))
+        Item item2 = new Item(2L, "item2", "description Item2", true, 1L, request);
+        ItemShortForRequest itemShortForRequest2 = ItemMapper.toItemShortForRequest(item2);
+        itemShortForRequests.add(itemShortForRequest1);
+        itemShortForRequests.add(itemShortForRequest2);
+
+        RequestOutputDto requestOutputDto = new RequestOutputDto(1L,
+                requestInputDto.getDescription(),
+                userId,
+                time,
+                itemShortForRequests);
+
+        when(requestService.getRequestById(anyLong(), anyLong())).thenReturn(requestOutputDto);
+
+        mvc.perform(get("/requests/" + requestId)
+                        .header("X-Sharer-User-Id", userId)
+
+                        .content(mapper.writeValueAsString(requestOutputDto))
                         .characterEncoding(StandardCharsets.UTF_8)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .header(X_SHARER_USER_ID, 1L)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(content().json(mapper.writeValueAsString(requestDto)));
+                .andExpect(content().json(mapper.writeValueAsString(requestOutputDto)))
+        ;
+    }
+
+    @Test
+    void shouldThrowError400() throws Exception {
+        Long userId = 1l;
+        RequestOutputDto requestOutputDto1 = new RequestOutputDto(1l,
+                " descriptionOfRequest1",
+                1l,
+                LocalDateTime.now(),
+                new ArrayList<>());
+        RequestOutputDto requestOutputDto2 = new RequestOutputDto(2l,
+                " descriptionOfRequest1",
+                1l,
+                LocalDateTime.now(),
+                new ArrayList<>());
+
+        List<RequestOutputDto> requestOutputDtos = new ArrayList<>();
+        requestOutputDtos.add(requestOutputDto1);
+        requestOutputDtos.add(requestOutputDto2);
+
+        when(requestService.getAllRequests(anyLong(), anyInt(), anyInt())).thenReturn(requestOutputDtos);
+
+        mvc.perform(get("/requests/all").header("X-Sharer-User-Id", userId)
+                        .content(mapper.writeValueAsString(requestOutputDtos))
+                        .param("from", String.valueOf(-1))
+                        .param("size", String.valueOf(-2))
+                        .characterEncoding(StandardCharsets.UTF_8)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().is4xxClientError())
+        ;
     }
 }

@@ -1,102 +1,110 @@
 package ru.practicum.shareit.user.service;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.dao.DataIntegrityViolationException;
-import ru.practicum.shareit.exception.model.EntityNotFoundException;
-import ru.practicum.shareit.user.mapper.UserMapper;
-import ru.practicum.shareit.user.repository.UserRepository;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import ru.practicum.shareit.exception.model.NotFoundException;
 import ru.practicum.shareit.user.dto.UserDto;
+import ru.practicum.shareit.user.mapper.UserMapper;
 import ru.practicum.shareit.user.model.User;
+import ru.practicum.shareit.user.repository.UserRepository;
 
-import javax.validation.ConstraintViolationException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import static org.mockito.Mockito.*;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class UserServiceImplTest {
 
+public class UserServiceImplTest {
     @Mock
     private UserRepository userRepository;
+
     @InjectMocks
     private UserServiceImpl userService;
 
-    private final long id = 1L;
-    private final UserDto userDto = new UserDto(id, "User", "user@mail.ru");
-    private final User user = new User(id, "User", "user@mail.ru");
+    @Test
+    void shouldgetById() {
+        long id = 1;
+        User user1 = new User(1L, "userName", "user@mail.ru");
+        UserDto userDto1 = UserMapper.toUserDto(user1);
+        when(userRepository.findById(anyLong())).thenReturn(Optional.of(user1));
+        assertThat(userService.getById(anyLong()).getId()).isEqualTo(userDto1.getId());
+        assertThat(userService.getById(anyLong()).getName()).isEqualTo(userDto1.getName());
+        assertThat(userService.getById(anyLong()).getEmail()).isEqualTo(userDto1.getEmail());
+    }
+
 
     @Test
-    void getAllUsers() {
-        when(userRepository.findAll()).thenReturn(List.of(user));
-
-        List<UserDto> targetUsers = userService.getAllUsers();
-
-        Assertions.assertNotNull(targetUsers);
-        Assertions.assertEquals(1, targetUsers.size());
-        verify(userRepository, times(1))
-                .findAll();
+    void shouldThrowNotFoundException() { // getById()
+        when(userRepository.findById(anyLong())).thenReturn(Optional.empty());
+        assertThatThrownBy(() -> userService.getById(1l)).isInstanceOf(NotFoundException.class);
     }
 
     @Test
-    void getUserById_whenUserFound_thenReturnedUser() {
-        when(userRepository.findById(id)).thenReturn(Optional.of(user));
-
-        UserDto actualUser = userService.getUserById(id);
-
-        Assertions.assertEquals(UserMapper.toUserDto(user), actualUser);
+    void shouldCreateUser() {
+        User user1 = new User(1l, "userName", "user@mail.ru");
+        when(userRepository.save(any())).thenReturn(user1);
+        UserDto userAfterSave = userService.createUser(UserMapper.toUserDto(user1));
+        assertThat(userAfterSave.getId()).isEqualTo(user1.getId());
+        assertThat(userAfterSave.getName()).isEqualTo(user1.getName());
+        assertThat(userAfterSave.getEmail()).isEqualTo(user1.getEmail());
     }
 
     @Test
-    void getUserById_whenUserNotFound_thenExceptionThrown() {
-        when((userRepository).findById(anyLong())).thenReturn(Optional.empty());
-
-        Assertions.assertThrows(EntityNotFoundException.class, () -> userService.getUserById(2L));
+    void update_shouldThrowNotFoundException() {
+        when(userRepository.findById(anyLong())).thenReturn(Optional.empty());
+        assertThatThrownBy(() -> userService.getById(anyLong())).isInstanceOf(NotFoundException.class);
     }
 
     @Test
-    void saveNewUser_whenUserNameValid_thenSavedUser() {
-        when(userRepository.save(any())).thenReturn(user);
+    void shouldUpdate() {
+        User user1 = new User(1L, "userName", "user@mail.ru");
+        Optional<User> us = Optional.of(user1);
 
-        UserDto actualUser = userService.saveNewUser(userDto);
+        UserDto userDto1 = UserMapper.toUserDto(user1);
 
-        Assertions.assertEquals(userDto, actualUser);
+        when(userRepository.findById(1l)).thenReturn(us);
+
+        UserDto userDtoAfter = userService.update(userDto1, 1l);
+
+        assertThat(userDtoAfter.getId()).isEqualTo(user1.getId());
+        assertThat(userDtoAfter.getName()).isEqualTo(user1.getName());
+        assertThat(userDtoAfter.getEmail()).isEqualTo(user1.getEmail());
     }
 
     @Test
-    void saveNewUser_whenUserEmailDuplicate_thenNotSavedUser() {
-        doThrow(DataIntegrityViolationException.class).when(userRepository).save(any(User.class));
+    void shouldGetAll() {
+        User user1 = new User(1L, "userName1", "user1@mail.ru");
+        UserDto userDto1 = UserMapper.toUserDto(user1);
+        User user2 = new User(2L, "userName2", "user2@mail.ru");
+        UserDto userDto2 = UserMapper.toUserDto(user1);
 
-        Assertions.assertThrows(DataIntegrityViolationException.class, () -> userService.saveNewUser(userDto));
-    }
+        List<UserDto> dtos = new ArrayList<>();
+        List<User> users = new ArrayList<>();
+        users.add(user1);
+        users.add(user2);
+        dtos.add(userDto1);
+        dtos.add(userDto2);
 
-    @Test
-    void saveNewUser_whenInvalidEmail_thenNotSavedUser() {
-        doThrow(ConstraintViolationException.class).when(userRepository).save(any(User.class));
+        when(userRepository.findAll((Pageable) any())).thenReturn(new PageImpl<User>(Collections.singletonList(user1)));
+        List<UserDto> usersAfter = userService.getAll(0, 1);
 
-        Assertions.assertThrows(ConstraintViolationException.class, () -> userService.saveNewUser(userDto));
-    }
+        assertThat(usersAfter.size()).isEqualTo(1);
 
-    @Test
-    void updateUser_whenUserFound_thenUpdatedOnlyAvailableFields() {
-        when(userRepository.findById(id)).thenReturn(Optional.of(user));
+        assertThat(usersAfter.get(0).getId()).isEqualTo(user1.getId());
+        assertThat(usersAfter.get(0).getName()).isEqualTo(user1.getName());
+        assertThat(usersAfter.get(0).getEmail()).isEqualTo(user1.getEmail());
 
-        UserDto actualUser = userService.updateUser(id, userDto);
-
-        Assertions.assertEquals(UserMapper.toUserDto(user), actualUser);
-        verify(userRepository, times(1))
-                .findById(user.getId());
-    }
-
-    @Test
-    void deleteUser() {
-        userService.deleteUser(1L);
-        verify(userRepository, times(1))
-                .deleteById(1L);
     }
 }

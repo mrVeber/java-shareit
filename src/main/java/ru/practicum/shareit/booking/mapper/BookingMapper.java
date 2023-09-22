@@ -1,41 +1,47 @@
 package ru.practicum.shareit.booking.mapper;
 
 import lombok.experimental.UtilityClass;
-import ru.practicum.shareit.booking.dto.BookingDtoIn;
-import ru.practicum.shareit.booking.dto.BookingDtoOut;
-import ru.practicum.shareit.booking.dto.BookingDtoShort;
+import ru.practicum.shareit.booking.dto.BookingDto;
+import ru.practicum.shareit.booking.dto.BookingDtoForReturn;
+import ru.practicum.shareit.booking.dto.BookingShortDto;
 import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.booking.model.BookingStatus;
-import ru.practicum.shareit.item.mapper.ItemMapper;
-import ru.practicum.shareit.user.mapper.UserMapper;
+import ru.practicum.shareit.item.dto.ItemShort;
+import ru.practicum.shareit.item.model.Item;
+import ru.practicum.shareit.user.dto.UserShort;
+import ru.practicum.shareit.user.model.User;
 
 @UtilityClass
 public class BookingMapper {
-    public BookingDtoOut toBookingDtoOut(Booking booking) {
-        return new BookingDtoOut(
-                booking.getId(),
-                booking.getStart(),
-                booking.getEnd(),
-                ItemMapper.toItemDtoShort(booking.getItem()),
-                UserMapper.toUserDtoShort(booking.getBooker()),
-                booking.getStatus()
-        );
+    public Booking toBooking(BookingDto bookingDto, User user, Item item) {
+        return new Booking(bookingDto.getId(),
+                bookingDto.getStart(),
+                bookingDto.getEnd(),
+                item,
+                user,
+                BookingStatus.WAITING);
     }
 
-    public BookingDtoShort toBookingDtoShort(Booking booking) {
-        return new BookingDtoShort(
-                booking.getId(),
+    public BookingDto toBookingDto(Booking booking) {
+        return new BookingDto(booking.getId(),
                 booking.getStart(),
                 booking.getEnd(),
-                booking.getStatus(),
+                booking.getItem().getId(),
                 booking.getBooker().getId()
         );
     }
 
-    public Booking toBooking(BookingDtoIn bookingDtoIn, Booking booking) {
-        booking.setStart(bookingDtoIn.getStart());
-        booking.setEnd(bookingDtoIn.getEnd());
-        booking.setStatus(BookingStatus.WAITING);
-        return booking;
+    public BookingDtoForReturn toBookingDtoForReturn(Booking booking) {
+        return new BookingDtoForReturn(booking.getId(),
+                booking.getStart(),
+                booking.getEnd(),
+                new ItemShort(booking.getItem().getId(), booking.getItem().getName()),
+                new UserShort(booking.getBooker().getId()),
+                booking.getStatus());
+    }
+
+    public BookingShortDto toBookingShortDto(Booking booking) {
+        return new BookingShortDto(booking.getId(),
+                booking.getBooker().getId());
     }
 }

@@ -1,185 +1,146 @@
 package ru.practicum.shareit.item.service;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.dao.DataIntegrityViolationException;
-import ru.practicum.shareit.booking.mapper.BookingMapper;
+import org.springframework.data.domain.PageImpl;
 import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.booking.model.BookingStatus;
-import ru.practicum.shareit.item.dto.CommentDtoIn;
-import ru.practicum.shareit.item.dto.CommentDtoOut;
-import ru.practicum.shareit.item.dto.ItemDtoIn;
-import ru.practicum.shareit.item.dto.ItemDtoOut;
+import ru.practicum.shareit.booking.repository.BookingRepository;
+import ru.practicum.shareit.item.dto.CommentDtoInput;
+import ru.practicum.shareit.item.dto.CommentDtoOutput;
+import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.mapper.CommentMapper;
 import ru.practicum.shareit.item.mapper.ItemMapper;
 import ru.practicum.shareit.item.model.Comment;
 import ru.practicum.shareit.item.model.Item;
+import ru.practicum.shareit.item.repository.CommentRepository;
 import ru.practicum.shareit.item.repository.ItemRepository;
-import ru.practicum.shareit.user.dto.UserDtoShort;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.repository.UserRepository;
-import ru.practicum.shareit.booking.repository.BookingRepository;
-import ru.practicum.shareit.item.repository.CommentRepository;
-import ru.practicum.shareit.exception.model.*;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class ItemServiceImplTest {
+public class ItemServiceImplTest {
+
     @Mock
     private ItemRepository itemRepository;
+
     @Mock
     private UserRepository userRepository;
-    @Mock
-    private BookingRepository bookingRepository;
+
     @Mock
     private CommentRepository commentRepository;
+
+    @Mock
+    private BookingRepository bookingRepository;
+
     @InjectMocks
-    private ItemServiceImpl itemService;
-
-    private final long id = 1L;
-    private final User user = new User(id, "User", "user@mail.ru");
-    private final User notOwner = new User(2L, "User2", "user2@mail.ru");
-    private final ItemDtoIn itemDtoIn = new ItemDtoIn("item", "cool item", true, null);
-    private final ItemDtoOut itemDtoOut = new ItemDtoOut(id, "item", "cool item", true,
-            new UserDtoShort(id, "User"));
-    private final Item item = new Item(id, "item", "cool item", true, user, null);
-    private final CommentDtoOut commentDto = new CommentDtoOut(id, "abc", "User",
-            LocalDateTime.of(2023, 7, 1, 12, 12, 12));
-    private final Comment comment = new Comment(id, "abc", item, user,
-            LocalDateTime.of(2023, 7, 1, 12, 12, 12));
-    private final Booking booking = new Booking(id, null, null, item, user, BookingStatus.WAITING);
+    ItemServiceImpl itemService;
 
     @Test
-    void saveNewItem_whenUserFound_thenSavedItem() {
-        when(userRepository.findById(id)).thenReturn(Optional.of(user));
-        when(itemRepository.save(any())).thenReturn(item);
+    void shouldCreateItem() {
 
-        ItemDtoOut actualItemDto = itemService.saveNewItem(itemDtoIn, id);
-
-        Assertions.assertEquals(ItemMapper.toItemDtoOut(item), actualItemDto);
-        Assertions.assertNull(item.getRequest());
+        Item item1 = new Item(1L, "item1", "description Item1", true, 2L, null);
+        User user1 = new User(1L, "userName", "user@mail.ru");
+        when(userRepository.findById(anyLong())).thenReturn(Optional.of(user1));
+        when(itemRepository.save(any())).thenReturn(item1);
+        ItemDto itemDto = ItemMapper.toItemDto(item1);
+        itemService.createItem(itemDto, user1.getId());
+        verify(itemRepository).save(any());
     }
 
     @Test
-    void saveNewItem_whenUserNotFound_thenNotSavedItem() {
-        when((userRepository).findById(2L)).thenReturn(Optional.empty());
+    void shouldUpdateItem() {
 
-        Assertions.assertThrows(EntityNotFoundException.class, () -> itemService.saveNewItem(itemDtoIn, 2L));
+        Item item1 = new Item(1L, "item1", "description Item1", true, 1L, null);
+        User user1 = new User(1L, "userName", "user@mail.ru");
+        when(itemRepository.getById(any())).thenReturn(item1);
+        ItemDto itemDto = ItemMapper.toItemDto(item1);
+        ItemDto itemDto1After = itemService.update(itemDto, item1.getId(), user1.getId());
+        assertEquals(itemDto1After.getId(), itemDto.getId());
+        assertEquals(itemDto1After.getName(), itemDto.getName());
+        assertEquals(itemDto1After.getDescription(), itemDto.getDescription());
     }
 
     @Test
-    void saveNewItem_whenNoName_thenNotSavedItem() {
-        when(userRepository.findById(id)).thenReturn(Optional.of(user));
-        doThrow(DataIntegrityViolationException.class).when(itemRepository).save(any(Item.class));
+    void shouldGetAllByUserId() {
+        Item item1 = new Item(1L, "item1", "description Item1", true, 1L, null);
+        when(itemRepository.findAllByOwnerOrderByIdAsc(anyLong(), any())).thenReturn(new PageImpl<Item>(Collections.singletonList(item1)));
 
-        Assertions.assertThrows(DataIntegrityViolationException.class, () -> itemService.saveNewItem(itemDtoIn, id));
+
+        itemService.getAllByUserId(1l, 0, 1);
+        verify(itemRepository).findAllByOwnerOrderByIdAsc(anyLong(), any());
+        verify(commentRepository).findByItemIn(any(), any());
+        verify(bookingRepository).findFirstByItemInAndAndStartLessThanEqualAndStatusEqualsOrderByStartDesc(any(), any(), any());
+        verify(bookingRepository).findFirstByItemInAndAndStartAfterAndStatusEqualsOrderByStartAsc(any(), any(), any());
     }
 
     @Test
-    void updateItem_whenUserIsOwner_thenUpdatedItem() {
-        when(userRepository.findById(id)).thenReturn(Optional.of(user));
-        when(itemRepository.findById(id)).thenReturn(Optional.of(item));
+    void shouldGetById() {
+        Item item1 = new Item(1L, "item1", "description Item1", true, 1L, null);
+        User user1 = new User(1L, "userName", "user@mail.ru");
+        Booking bookingNext = new Booking(1L, LocalDateTime.now().plusDays(1), LocalDateTime.now().plusDays(2), item1, user1, BookingStatus.WAITING);
+        Booking bookingLast = new Booking(1L, LocalDateTime.now().minusDays(2), LocalDateTime.now().minusDays(1), item1, user1, BookingStatus.WAITING);
 
-        ItemDtoOut actualItemDto = itemService.updateItem(id, itemDtoIn, id);
+        when(itemRepository.findById(anyLong())).thenReturn(Optional.of(item1));
+        when(bookingRepository.findFirstByItemAndStatusLikeAndStartAfterOrderByStartAsc(any(), any(), any())).thenReturn(Optional.of(bookingNext));
+        when(bookingRepository.findFirstByItemAndStatusLikeAndStartLessThanEqualOrderByStartDesc(any(), any(), any())).thenReturn(Optional.of(bookingLast));
 
-        Assertions.assertEquals(itemDtoOut, actualItemDto);
+        itemService.getById(1, 1);
+
+        verify(itemRepository).findById(anyLong());
+        verify(bookingRepository).findFirstByItemAndStatusLikeAndStartAfterOrderByStartAsc(any(), any(), any());
+        verify(bookingRepository).findFirstByItemAndStatusLikeAndStartLessThanEqualOrderByStartDesc(any(), any(), any());
+
     }
 
     @Test
-    void updateItem_whenUserNotOwner_thenNotUpdatedItem() {
-        when(userRepository.findById(2L)).thenReturn(Optional.of(notOwner));
-        when(itemRepository.findById(id)).thenReturn(Optional.of(item));
+    void shouldSearch() {
+        Item item1 = new Item(1L, "item1", "description Item1", true, 1L, null);
+        ItemDto itemDto1 = ItemMapper.toItemDto(item1);
+        List<ItemDto> itemDtosBefore = List.of(itemDto1);
+        when(itemRepository.search(any(), any()))
+                .thenReturn(new PageImpl<Item>(Collections.singletonList(item1)));
 
-        Assertions.assertThrows(NotOwnerException.class, () -> itemService.updateItem(id, itemDtoIn, 2L));
+        List<ItemDto> itemDtosAfter = itemService.search("text", 0, 1);
+
+        assertEquals(itemDtosBefore.size(), itemDtosAfter.size());
+        assertEquals(itemDtosBefore.get(0).getId(), itemDtosAfter.get(0).getId());
+        assertEquals(itemDtosBefore.get(0).getName(), itemDtosAfter.get(0).getName());
+        assertEquals(itemDtosBefore.get(0).getDescription(), itemDtosAfter.get(0).getDescription());
     }
 
     @Test
-    void getItemById_whenItemFound_thenReturnedItem() {
-        when(bookingRepository.findFirstByItemIdAndStartLessThanEqualAndStatus(anyLong(), any(), any(), any()))
-                .thenReturn(Optional.of(booking));
-        when(bookingRepository.findFirstByItemIdAndStartAfterAndStatus(anyLong(), any(), any(), any()))
-                .thenReturn(Optional.of(booking));
-        when(commentRepository.findAllByItemId(id)).thenReturn(List.of(comment));
-        when(itemRepository.findById(id)).thenReturn(Optional.of(item));
-        final ItemDtoOut itemDto = ItemMapper.toItemDtoOut(item);
-        itemDto.setLastBooking(BookingMapper.toBookingDtoShort(booking));
-        itemDto.setNextBooking(BookingMapper.toBookingDtoShort(booking));
-        itemDto.setComments(List.of(CommentMapper.toCommentDtoOut(comment)));
+    void shouldCreateComment() {
+        Item item1 = new Item(1L, "item1", "description Item1", true, 1L, null);
+        User user1 = new User(1L, "userName", "user@mail.ru");
+        Booking bookingLast = new Booking(1L, LocalDateTime.now().minusDays(2), LocalDateTime.now().minusDays(1), item1, user1, BookingStatus.APPROVED);
+        Comment comment1 = new Comment(1l, "text comment1", user1, item1, LocalDateTime.now());
+        CommentDtoInput commentDto1 = CommentMapper.toCommentDtoInput(comment1);
+        CommentDtoOutput commentDtoOutput = CommentMapper.toCommentDtoOutput(comment1);
 
-        ItemDtoOut actualItemDto = itemService.getItemById(id, id);
+        when(userRepository.findById(anyLong())).thenReturn(Optional.of(user1));
+        when(itemRepository.findById(anyLong())).thenReturn(Optional.of(item1));
+        when(bookingRepository.findLastBookings(anyLong(), anyLong(), any())).thenReturn(List.of(bookingLast));
+        when(commentRepository.save(any())).thenReturn(comment1);
 
-        Assertions.assertEquals(itemDto, actualItemDto);
-    }
-
-    @Test
-    void getItemById_whenItemNotFound_thenExceptionThrown() {
-        when((itemRepository).findById(2L)).thenReturn(Optional.empty());
-
-        Assertions.assertThrows(EntityNotFoundException.class, () -> itemService.getItemById(2L, id));
-    }
-
-    @Test
-    void getItemsByOwner_CorrectArgumentsForPaging_thenReturnItems() {
-        when(userRepository.findById(id)).thenReturn(Optional.of(user));
-        when(itemRepository.findAllByOwnerId(anyLong(), any())).thenReturn(List.of(item));
-
-        List<ItemDtoOut> targetItems = itemService.getItemsByOwner(0, 10, id);
-
-        Assertions.assertNotNull(targetItems);
-        Assertions.assertEquals(1, targetItems.size());
-        verify(itemRepository, times(1))
-                .findAllByOwnerId(anyLong(), any());
-    }
-
-    @Test
-    void getItemBySearch_whenTextNotBlank_thenReturnItems() {
-        when(itemRepository.search(any(), any())).thenReturn(List.of(item));
-
-        List<ItemDtoOut> targetItems = itemService.getItemBySearch(0, 10, "abc");
-
-        Assertions.assertNotNull(targetItems);
-        Assertions.assertEquals(1, targetItems.size());
-        verify(itemRepository, times(1))
-                .search(any(), any());
-    }
-
-    @Test
-    void getItemBySearch_whenTextIsBlank_thenReturnEmptyList() {
-        List<ItemDtoOut> targetItems = itemService.getItemBySearch(0, 10, "");
-
-        Assertions.assertTrue(targetItems.isEmpty());
-        Assertions.assertEquals(0, targetItems.size());
-        verify(itemRepository, never()).search(any(), any());
-    }
-
-    @Test
-    void saveNewComment_whenUserWasBooker_thenSavedComment() {
-        when(bookingRepository.existsByBookerIdAndItemIdAndEndBefore(anyLong(), anyLong(), any()))
-                .thenReturn(true);
-        when(userRepository.findById(id)).thenReturn(Optional.of(user));
-        when(commentRepository.save(any())).thenReturn(comment);
-        when(itemRepository.findById(id)).thenReturn(Optional.of(item));
-
-        CommentDtoOut actualComment = itemService.saveNewComment(id, new CommentDtoIn("abc"), id);
-
-        Assertions.assertEquals(commentDto, actualComment);
-    }
-
-    @Test
-    void saveNewComment_whenUserWasNotBooker_thenThrownException() {
-        when((bookingRepository).existsByBookerIdAndItemIdAndEndBefore(anyLong(), anyLong(), any())).thenReturn(false);
-
-        Assertions.assertThrows(NotBookerException.class, () ->
-                itemService.saveNewComment(2L, new CommentDtoIn("abc"), id));
+        CommentDtoOutput commentDtoOutputAfter = itemService.createComment(commentDto1, 1L, 1L);
+        assertEquals(commentDtoOutput.getId(), commentDtoOutputAfter.getId());
+        assertEquals(commentDtoOutput.getText(), commentDtoOutputAfter.getText());
+        assertEquals(commentDtoOutput.getAuthorName(), commentDtoOutputAfter.getAuthorName());
+        assertEquals(commentDtoOutput.getCreated(), commentDtoOutputAfter.getCreated());
     }
 }

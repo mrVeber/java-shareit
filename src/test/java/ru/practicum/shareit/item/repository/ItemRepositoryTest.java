@@ -3,41 +3,68 @@ package ru.practicum.shareit.item.repository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.data.domain.Pageable;
+import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.TestPropertySource;
 import ru.practicum.shareit.item.model.Item;
+import ru.practicum.shareit.request.model.ItemRequest;
+import ru.practicum.shareit.request.repository.ItemRequestRepository;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.repository.UserRepository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @DataJpaTest
-class ItemRepositoryTest {
+@AutoConfigureTestDatabase
+@TestPropertySource(properties = { "db.name=test1"})
+public class ItemRepositoryTest {
+    @Autowired
+    private TestEntityManager em;
     @Autowired
     private ItemRepository itemRepository;
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private ItemRequestRepository requestRepository;
 
-    private final User user = new User(null, "user", "user@mail.ru");
-    private final Item item = new Item(null, "item", "cool", true, user, null);
+    User user1 = new User(null, "userName1", "user1@user.com");
+    User user2 = new User(null, "userName2", "user2@user.com");
+    ItemRequest request1 = new ItemRequest(1L, " descriptionOfRequest1", 2l, LocalDateTime.now());
+    Item item1 = new Item(null, "item1", "description Item1", true, 1L, request1);
+    Item item2 = new Item(null, "item2", "description Item2", true, 1L, request1);
+
 
     @BeforeEach
-    void setUp() {
-        userRepository.save(user);
-        itemRepository.save(item);
+    void beforeEach(){
+
+        userRepository.save(user1);
+        userRepository.save(user2);
+        requestRepository.save(request1);
+        itemRepository.save(item1);
+        itemRepository.save(item2);
     }
 
     @Test
-    @DirtiesContext
-    void search() {
-        List<Item> items = itemRepository.search("i", Pageable.ofSize(10));
+    void contextLoads() {
+        assertThat(em).isNotNull();
+    }
 
-        assertThat(items.get(0).getId(), equalTo(1L));
-        assertThat(items.get(0).getName(), equalTo(item.getName()));
-        assertThat(items.size(), equalTo(1));
+    @DirtiesContext
+    @Test
+    void shouldSearch() {
+        PageRequest pageRequest = PageRequest.of(0, 2);
+        Page<Item> itemsAfter = itemRepository.search("item" , pageRequest);
+        List<Item> itemList =  itemsAfter.toList();
+        assertEquals(2, itemList.size());
+        assertEquals(1, itemList.get(0).getId());
+        assertEquals(2, itemList.get(1).getId());
     }
 }

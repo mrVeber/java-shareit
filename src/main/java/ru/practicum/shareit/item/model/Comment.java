@@ -7,28 +7,28 @@ import javax.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "comments")
-@Getter
 @Setter
-@ToString
+@Getter
 @AllArgsConstructor
 @NoArgsConstructor
+@Table(name = "COMMENTS")
 public class Comment {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "text")
     private String text;
 
+    @JoinColumn(name = "author")
     @ManyToOne
-    @JoinColumn(name = "item_id")
-    private Item item;
-
-    @ManyToOne
-    @JoinColumn(name = "author_id")
     private User author;
 
-    private LocalDateTime created;
+    @JoinColumn(name = "item_id")
+    @ManyToOne
+    private Item item;
 
+    @Column(name = "created")
+    private LocalDateTime created;
 }

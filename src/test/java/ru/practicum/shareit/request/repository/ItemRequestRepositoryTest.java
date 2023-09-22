@@ -3,12 +3,13 @@ package ru.practicum.shareit.request.repository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.data.domain.Sort;
+import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.test.annotation.DirtiesContext;
-import ru.practicum.shareit.booking.model.Booking;
-import ru.practicum.shareit.booking.model.BookingStatus;
-import ru.practicum.shareit.booking.repository.BookingRepository;
+import org.springframework.test.context.TestPropertySource;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.repository.ItemRepository;
 import ru.practicum.shareit.request.model.ItemRequest;
@@ -18,46 +19,55 @@ import ru.practicum.shareit.user.repository.UserRepository;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.springframework.data.domain.Sort.Direction.DESC;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @DataJpaTest
-class ItemRequestRepositoryTest {
+@AutoConfigureTestDatabase
+@TestPropertySource(properties = { "db.name=test2"})
+public class ItemRequestRepositoryTest {
 
     @Autowired
-    private ItemRequestRepository requestRepository;
-    @Autowired
-    private UserRepository userRepository;
+    private TestEntityManager em;
     @Autowired
     private ItemRepository itemRepository;
     @Autowired
-    private BookingRepository bookingRepository;
+    private UserRepository userRepository;
+    @Autowired
+    private ItemRequestRepository requestRepository;
 
-    private final User user = new User(null, "user", "user@mail.ru");
-    private final User requestor = new User(null, "user2", "user2@mail.ru");
-    private final Item item = new Item(null, "item", "cool", true, user, null);
-    private final Booking booking = new Booking(1L,
-            LocalDateTime.of(2023, 7, 1, 12, 12, 12),
-            LocalDateTime.of(2023, 7, 30, 12, 12, 12),
-            item, requestor, BookingStatus.WAITING);
-    private final ItemRequest request = new ItemRequest(1L, "description", requestor, LocalDateTime.now());
+
+    User user1 = new User(null, "userName1", "user1@user.com");
+    User user2 = new User(null, "userName2", "user2@user.com");
+    ItemRequest request1 = new ItemRequest(1L, " descriptionOfRequest1", 2L, LocalDateTime.now().minusDays(1));
+    ItemRequest request2 = new ItemRequest(2L, " descriptionOfRequest2", 1L, LocalDateTime.now());
+    Item item1 = new Item(null, "item1", "description Item1", true, 1L, request1);
+    Item item2 = new Item(null, "item2", "description Item2", true, 1L, request1);
 
     @BeforeEach
-    void setUp() {
-        userRepository.save(user);
-        userRepository.save(requestor);
-        itemRepository.save(item);
-        bookingRepository.save(booking);
-        requestRepository.save(request);
+    void beforeEach() {
+
+        userRepository.save(user1);
+        userRepository.save(user2);
+        requestRepository.save(request1);
+        requestRepository.save(request2);
+        itemRepository.save(item1);
+        itemRepository.save(item2);
     }
 
     @Test
-    @DirtiesContext
-    void findAllByRequestorId() {
-        List<ItemRequest> requests = requestRepository.findAllByRequestorId(2L, Sort.by(DESC, "created"));
+    void contextLoads() {
+        assertThat(em).isNotNull();
+    }
 
-        assertThat(requests.get(0).getId(), equalTo(request.getId()));
-        assertThat(requests.size(), equalTo(1));
+    @DirtiesContext
+    @Test
+    void shouldFindAllWithoutUserId() {
+
+        PageRequest pageRequest = PageRequest.of(0, 1);
+        Page<ItemRequest> requestsAfter = requestRepository.findAllWithoutUserId(2l, pageRequest);
+        List<ItemRequest> requestList = requestsAfter.toList();
+        assertEquals(1, requestList.size());
+        assertEquals(" descriptionOfRequest2", requestList.get(0).getDescription());
     }
 }
