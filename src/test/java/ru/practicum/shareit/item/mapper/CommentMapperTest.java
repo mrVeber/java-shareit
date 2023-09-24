@@ -18,7 +18,7 @@ public class CommentMapperTest {
     void toCommentTest() {
         Item item1 = new Item(1L, "item1", "description Item1", true, 1L, null);
         User user1 = new User(1L, "userName", "user@mail.ru");
-        CommentDtoInput commentDtoInput1 = new CommentDtoInput(1l,
+        CommentDtoInput commentDtoInput1 = new CommentDtoInput(1L,
                 "text comment1",
                 user1.getId(),
                 user1.getName(),
