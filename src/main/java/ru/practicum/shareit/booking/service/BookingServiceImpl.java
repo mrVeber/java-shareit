@@ -48,7 +48,7 @@ public class BookingServiceImpl implements BookingService {
             throw new NotFoundException("Item не обнаружен в базе данных");
         }
 
-        if (booker.get().getId() == item.get().getOwner()) {
+        if (booker.get().getId().equals(item.get().getOwner())) {
             throw new NotFoundException("Владелец не может бронировать свою вещь");
         }
         checkAvailable(item.get());
