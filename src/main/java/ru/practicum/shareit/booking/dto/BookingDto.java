@@ -15,7 +15,6 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 public class BookingDto {
-    
     private long id;
 
     @FutureOrPresent(groups = Create.class)
