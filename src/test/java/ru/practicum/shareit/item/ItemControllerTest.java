@@ -159,10 +159,10 @@ public class ItemControllerTest {
     @Test
     void shouldCreateComment() throws Exception {
         LocalDateTime timeOfPost = LocalDateTime.now();
-        Long itemId = 1l;
+        Long itemId = 1L;
         long userId = 1;
 
-        CommentDtoOutput commentDtoOutput = new CommentDtoOutput(1l, "Text of coment", 1l, "NameOfAuthor", timeOfPost);
+        CommentDtoOutput commentDtoOutput = new CommentDtoOutput(1L, "Text of coment", 1L, "NameOfAuthor", timeOfPost);
 
         when(itemService.createComment(any(), anyLong(), anyLong())).thenReturn(commentDtoOutput);
 

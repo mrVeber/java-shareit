@@ -133,9 +133,10 @@ public class UserControllerTest {
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
     }
+
     @Test
     void shouldReturn400() throws Exception {
-        Long userId = 1l;
+        Long userId = 1L;
         User user1 = new User(1L, "userName1", "user1@mail.ru");
         User user2 = new User(2L, "userName2", "user2@mail.ru");
         UserDto userDto1 = UserMapper.toUserDto(user1);

@@ -48,6 +48,7 @@ public class ErrorHandler {
         log.error(e.getMessage());
         return new ErrorResponse("Unknown state: UNSUPPORTED_STATUS");
     }
+
     @ExceptionHandler
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorResponse handleThrowable(final Throwable e) {

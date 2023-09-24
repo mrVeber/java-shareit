@@ -44,9 +44,9 @@ public class RequestServiceImplTest {
                 " descriptionOfRequest1"
         );
 
-        ItemRequest request = new ItemRequest(1l,
+        ItemRequest request = new ItemRequest(1L,
                 " descriptionOfRequest1",
-                1l,
+                1L,
                 timeCreated);
 
         when(userRepository.existsById(anyLong())).thenReturn(true);
@@ -62,13 +62,13 @@ public class RequestServiceImplTest {
     @Test
     void shouldGetRequestsByAuthor() {
 
-        ItemRequest request1 = new ItemRequest(1l,
+        ItemRequest request1 = new ItemRequest(1L,
                 " descriptionOfRequest1",
-                1l,
+                1L,
                 LocalDateTime.now().minusDays(2));
-        ItemRequest request2 = new ItemRequest(2l,
+        ItemRequest request2 = new ItemRequest(2L,
                 " descriptionOfRequest2",
-                1l,
+                1L,
                 LocalDateTime.now().minusDays(1));
         List<ItemRequest> requests = List.of(request1, request2);
 
@@ -80,7 +80,7 @@ public class RequestServiceImplTest {
         when(requestRepository.findAllByRequester(anyLong())).thenReturn(requests);
         when(itemRepository.findByRequestIn(anyList(), any())).thenReturn(items);
 
-        List<RequestOutputDto> requestOutputDtosAfter = requestService.getRequestsByAuthor(1l);
+        List<RequestOutputDto> requestOutputDtosAfter = requestService.getRequestsByAuthor(1L);
 
         assertEquals(requestOutputDtosAfter.size(), requests.size());
         assertEquals(requestOutputDtosAfter.get(0).getId(), requests.get(0).getId());
@@ -90,9 +90,9 @@ public class RequestServiceImplTest {
 
     @Test
     void shouldGetAllRequests() {
-        ItemRequest request1 = new ItemRequest(1l,
+        ItemRequest request1 = new ItemRequest(1L,
                 " descriptionOfRequest1",
-                1l,
+                1L,
                 LocalDateTime.now().minusDays(2));
         Item item1 = new Item(1L, "item1", "description Item1", true, 1L, request1);
         Item item2 = new Item(2L, "item2", "description Item2", true, 1L, request1);
@@ -101,7 +101,7 @@ public class RequestServiceImplTest {
                 .thenReturn(new PageImpl<ItemRequest>(Collections.singletonList(request1)));
         when(itemRepository.findByRequestIn(anyList(), any())).thenReturn(items);
 
-        List<RequestOutputDto> requestOutputDtosAfter = requestService.getAllRequests(1l, 0, 1);
+        List<RequestOutputDto> requestOutputDtosAfter = requestService.getAllRequests(1L, 0, 1);
 
         assertEquals(requestOutputDtosAfter.size(), 1);
         assertEquals(requestOutputDtosAfter.get(0).getId(), request1.getId());
@@ -113,9 +113,9 @@ public class RequestServiceImplTest {
 
     @Test
     void shouldGetRequestById() {
-        ItemRequest request1 = new ItemRequest(1l,
+        ItemRequest request1 = new ItemRequest(1L,
                 " descriptionOfRequest1",
-                1l,
+                1L,
                 LocalDateTime.now().minusDays(2));
         Item item1 = new Item(1L, "item1", "description Item1", true, 1L, request1);
         Item item2 = new Item(2L, "item2", "description Item2", true, 1L, request1);
@@ -125,7 +125,7 @@ public class RequestServiceImplTest {
         when(userRepository.existsById(anyLong())).thenReturn(true);
         when(itemRepository.findByRequestIn(anyList(), any())).thenReturn(items);
 
-        RequestOutputDto requestOutputDtoAfter = requestService.getRequestById(1l, 1l);
+        RequestOutputDto requestOutputDtoAfter = requestService.getRequestById(1L, 1L);
         assertEquals(requestOutputDtoAfter.getId(), request1.getId());
         assertEquals(requestOutputDtoAfter.getDescription(), request1.getDescription());
         assertEquals(requestOutputDtoAfter.getDescription(), request1.getDescription());

@@ -26,13 +26,13 @@ public class ItemRequestJsonTest {
     @BeforeEach
     void beforeEach() {
 
-        ItemRequest request = new ItemRequest(1l, "descriptionOfRequest1", 1l, LocalDateTime.now());
-        List<ItemShortForRequest> itemShorts = List.of(new ItemShortForRequest(1l,
+        ItemRequest request = new ItemRequest(1L, "descriptionOfRequest1", 1L, LocalDateTime.now());
+        List<ItemShortForRequest> itemShorts = List.of(new ItemShortForRequest(1L,
                 "itemName1",
                 "itemDescription1",
                 true,
-                1l,
-                2l));
+                1L,
+                2L));
 
         requestOutputDto = ItemRequestMapper.toRequestOutputDto(request);
         requestOutputDto.setItems(itemShorts);

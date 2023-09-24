@@ -50,9 +50,9 @@ public class ItemRequestControllerTest {
     @Test
     void createRequestTest() throws Exception {
         LocalDateTime time = LocalDateTime.now();
-        ItemRequest request = new ItemRequest(1l,
+        ItemRequest request = new ItemRequest(1L,
                 " descriptionOfRequest1",
-                1l,
+                1L,
                 LocalDateTime.now());
         Long userId = 1L;
         RequestInputDto requestInputDto = new RequestInputDto(
@@ -86,15 +86,15 @@ public class ItemRequestControllerTest {
 
     @Test
     void getRequestsByAuthorTest() throws Exception {
-        Long userId = 1l;
-        RequestOutputDto requestOutputDto1 = new RequestOutputDto(1l,
+        Long userId = 1L;
+        RequestOutputDto requestOutputDto1 = new RequestOutputDto(1L,
                 " descriptionOfRequest1",
-                1l,
+                1L,
                 LocalDateTime.now(),
                 new ArrayList<>());
-        RequestOutputDto requestOutputDto2 = new RequestOutputDto(2l,
+        RequestOutputDto requestOutputDto2 = new RequestOutputDto(2L,
                 " descriptionOfRequest1",
-                1l,
+                1L,
                 LocalDateTime.now(),
                 new ArrayList<>());
 
@@ -116,15 +116,15 @@ public class ItemRequestControllerTest {
 
     @Test
     void getAllRequestsTest() throws Exception {
-        Long userId = 1l;
-        RequestOutputDto requestOutputDto1 = new RequestOutputDto(1l,
+        Long userId = 1L;
+        RequestOutputDto requestOutputDto1 = new RequestOutputDto(1L,
                 " descriptionOfRequest1",
-                1l,
+                1L,
                 LocalDateTime.now(),
                 new ArrayList<>());
-        RequestOutputDto requestOutputDto2 = new RequestOutputDto(2l,
+        RequestOutputDto requestOutputDto2 = new RequestOutputDto(2L,
                 " descriptionOfRequest1",
-                1l,
+                1L,
                 LocalDateTime.now(),
                 new ArrayList<>());
 
@@ -146,9 +146,9 @@ public class ItemRequestControllerTest {
 
     @Test
     void getRequestByIdTest() throws Exception {
-        ItemRequest request = new ItemRequest(1l,
+        ItemRequest request = new ItemRequest(1L,
                 " descriptionOfRequest1",
-                1l,
+                1L,
                 LocalDateTime.now());
         Long userId = 1L;
         Long requestId = 1L;
@@ -187,15 +187,15 @@ public class ItemRequestControllerTest {
 
     @Test
     void shouldThrowError400() throws Exception {
-        Long userId = 1l;
-        RequestOutputDto requestOutputDto1 = new RequestOutputDto(1l,
+        Long userId = 1L;
+        RequestOutputDto requestOutputDto1 = new RequestOutputDto(1L,
                 " descriptionOfRequest1",
-                1l,
+                1L,
                 LocalDateTime.now(),
                 new ArrayList<>());
-        RequestOutputDto requestOutputDto2 = new RequestOutputDto(2l,
+        RequestOutputDto requestOutputDto2 = new RequestOutputDto(2L,
                 " descriptionOfRequest1",
-                1l,
+                1L,
                 LocalDateTime.now(),
                 new ArrayList<>());
 

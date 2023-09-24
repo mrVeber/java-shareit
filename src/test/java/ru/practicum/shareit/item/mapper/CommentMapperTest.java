@@ -39,7 +39,7 @@ public class CommentMapperTest {
     void toCommentDtoInput() {
         Item item1 = new Item(1L, "item1", "description Item1", true, 1L, null);
         User user1 = new User(1L, "userName", "user@mail.ru");
-        Comment comment1 = new Comment(1l, "text comment1", user1, item1, LocalDateTime.now());
+        Comment comment1 = new Comment(1L, "text comment1", user1, item1, LocalDateTime.now());
 
         CommentDtoInput commentDtoInput1 = CommentMapper.toCommentDtoInput(comment1);
 
@@ -54,7 +54,7 @@ public class CommentMapperTest {
     void toCommentDtoOutput() {
         Item item1 = new Item(1L, "item1", "description Item1", true, 1L, null);
         User user1 = new User(1L, "userName", "user@mail.ru");
-        Comment comment1 = new Comment(1l, "text comment1", user1, item1, LocalDateTime.now());
+        Comment comment1 = new Comment(1L, "text comment1", user1, item1, LocalDateTime.now());
 
         CommentDtoOutput commentDtoOutput1 = CommentMapper.toCommentDtoOutput(comment1);
 

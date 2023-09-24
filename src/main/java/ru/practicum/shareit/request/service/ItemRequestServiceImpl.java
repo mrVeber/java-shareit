@@ -19,7 +19,6 @@ import ru.practicum.shareit.request.repository.ItemRequestRepository;
 import ru.practicum.shareit.user.repository.UserRepository;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -67,7 +66,7 @@ public class ItemRequestServiceImpl implements ItemRequestService {
     @Override
     public List<RequestOutputDto> getAllRequests(Long userId, Integer from, Integer size) {
 
-        List<ItemRequest> requests = requestRepository.findRequestsByRequesterNotOrderByCreatedDesc (userId, PageRequest.of(from, size)).toList();
+        List<ItemRequest> requests = requestRepository.findRequestsByRequesterNotOrderByCreatedDesc(userId, PageRequest.of(from, size)).toList();
 
         return prepareRequests(requests);
 

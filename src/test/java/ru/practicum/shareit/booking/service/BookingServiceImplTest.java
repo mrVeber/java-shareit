@@ -70,7 +70,7 @@ public class BookingServiceImplTest {
         Booking booking1 = new Booking(1L, LocalDateTime.now(), LocalDateTime.now().plusDays(1), item1, user1, BookingStatus.WAITING);
         when(bookingRepository.findById(anyLong())).thenReturn(Optional.of(booking1));
         when(bookingRepository.findById(anyLong())).thenReturn(Optional.of(booking1));
-        BookingDtoForReturn bookingDtoForReturn = bookingService.approving(1L, 2l, true);
+        BookingDtoForReturn bookingDtoForReturn = bookingService.approving(1L, 2L, true);
         assertEquals(bookingDtoForReturn.getId(), booking1.getId());
         assertEquals(bookingDtoForReturn.getBooker().getId(), booking1.getBooker().getId());
         assertEquals(bookingDtoForReturn.getItem().getId(), booking1.getItem().getId());
@@ -86,7 +86,7 @@ public class BookingServiceImplTest {
         Booking booking1 = new Booking(1L, LocalDateTime.now(), LocalDateTime.now().plusDays(1), item1, user1, BookingStatus.WAITING);
 
         when(bookingRepository.findById(anyLong())).thenReturn(Optional.of(booking1));
-        BookingDtoForReturn bookingDtoForReturnAfter = bookingService.getById(1l, 1L);
+        BookingDtoForReturn bookingDtoForReturnAfter = bookingService.getById(1L, 1L);
 
         assertEquals(bookingDtoForReturnAfter.getId(), booking1.getId());
         assertEquals(bookingDtoForReturnAfter.getBooker().getId(), booking1.getBooker().getId());
@@ -104,7 +104,7 @@ public class BookingServiceImplTest {
 
         when(userRepository.existsById(anyLong())).thenReturn(true);
         when(bookingRepository.findAllByBookerOrderByStartDesc(anyLong(), any())).thenReturn(new PageImpl<Booking>(Collections.singletonList(booking1)));
-        bookingService.getByBookerId(1l, BookingState.ALL, 1, 2);
+        bookingService.getByBookerId(1L, BookingState.ALL, 1, 2);
 
         verify(bookingRepository).findAllByBookerOrderByStartDesc(anyLong(), any());
     }
@@ -118,7 +118,7 @@ public class BookingServiceImplTest {
 
         when(userRepository.existsById(anyLong())).thenReturn(true);
         when(bookingRepository.findAllByBookerOrderByStartDescFuture(anyLong(), any(), any())).thenReturn(List.of(booking1));
-        bookingService.getByBookerId(1l, BookingState.FUTURE, 0, 1);
+        bookingService.getByBookerId(1L, BookingState.FUTURE, 0, 1);
 
         verify(bookingRepository).findAllByBookerOrderByStartDescFuture(anyLong(), any(), any());
     }
@@ -131,7 +131,7 @@ public class BookingServiceImplTest {
 
         when(userRepository.existsById(anyLong())).thenReturn(true);
         when(bookingRepository.findAllByBookerOrderByStartDescStatus(anyLong(), any())).thenReturn(List.of(booking1));
-        bookingService.getByBookerId(1l, BookingState.WAITING, 0, 1);
+        bookingService.getByBookerId(1L, BookingState.WAITING, 0, 1);
 
         verify(bookingRepository).findAllByBookerOrderByStartDescStatus(anyLong(), any());
     }
@@ -145,7 +145,7 @@ public class BookingServiceImplTest {
 
         when(userRepository.existsById(anyLong())).thenReturn(true);
         when(bookingRepository.findAllByBookerOrderByStartDescCurrent(anyLong(), any())).thenReturn(List.of(booking1));
-        bookingService.getByBookerId(1l, BookingState.CURRENT, 0, 1);
+        bookingService.getByBookerId(1L, BookingState.CURRENT, 0, 1);
 
         verify(bookingRepository).findAllByBookerOrderByStartDescCurrent(anyLong(), any());
     }
@@ -159,7 +159,7 @@ public class BookingServiceImplTest {
 
         when(userRepository.existsById(anyLong())).thenReturn(true);
         when(bookingRepository.findAllByBookerPast(anyLong(), any())).thenReturn(List.of(booking1));
-        bookingService.getByBookerId(1l, BookingState.PAST, 0, 1);
+        bookingService.getByBookerId(1L, BookingState.PAST, 0, 1);
 
         verify(bookingRepository).findAllByBookerPast(anyLong(), any());
     }
@@ -174,7 +174,7 @@ public class BookingServiceImplTest {
 
         when(userRepository.existsById(anyLong())).thenReturn(true);
         when(bookingRepository.findAllByOwnerOrderByStartDesc(anyLong(), any())).thenReturn(new PageImpl<Booking>(Collections.singletonList(booking1)));
-        bookingService.getByOwnerId(1l, BookingState.ALL, 0, 1);
+        bookingService.getByOwnerId(1L, BookingState.ALL, 0, 1);
 
         verify(bookingRepository).findAllByOwnerOrderByStartDesc(anyLong(), any());
     }
@@ -188,7 +188,7 @@ public class BookingServiceImplTest {
 
         when(userRepository.existsById(anyLong())).thenReturn(true);
         when(bookingRepository.findAllByOwnerOrderByStartDescFuture(anyLong(), any())).thenReturn(List.of(booking1));
-        bookingService.getByOwnerId(1l, BookingState.FUTURE, 0, 1);
+        bookingService.getByOwnerId(1L, BookingState.FUTURE, 0, 1);
 
         verify(bookingRepository).findAllByOwnerOrderByStartDescFuture(anyLong(), any());
     }
@@ -202,7 +202,7 @@ public class BookingServiceImplTest {
 
         when(userRepository.existsById(anyLong())).thenReturn(true);
         when(bookingRepository.findAllByOwnerOrderByStartDescStatus(anyLong(), any())).thenReturn(List.of(booking1));
-        bookingService.getByOwnerId(1l, BookingState.REJECTED, 0, 1);
+        bookingService.getByOwnerId(1L, BookingState.REJECTED, 0, 1);
 
         verify(bookingRepository).findAllByOwnerOrderByStartDescStatus(anyLong(), any());
     }
@@ -216,7 +216,7 @@ public class BookingServiceImplTest {
 
         when(userRepository.existsById(anyLong())).thenReturn(true);
         when(bookingRepository.findAllByOwnerOrderByStartDescStatus(anyLong(), any())).thenReturn(List.of(booking1));
-        bookingService.getByOwnerId(1l, BookingState.WAITING, 0, 1);
+        bookingService.getByOwnerId(1L, BookingState.WAITING, 0, 1);
 
         verify(bookingRepository).findAllByOwnerOrderByStartDescStatus(anyLong(), any());
     }
@@ -230,7 +230,7 @@ public class BookingServiceImplTest {
 
         when(userRepository.existsById(anyLong())).thenReturn(true);
         when(bookingRepository.findAllByOwnerOrderByStartDescCurrent(anyLong(), any())).thenReturn(List.of(booking1));
-        bookingService.getByOwnerId(1l, BookingState.CURRENT, 0, 1);
+        bookingService.getByOwnerId(1L, BookingState.CURRENT, 0, 1);
 
         verify(bookingRepository).findAllByOwnerOrderByStartDescCurrent(anyLong(), any());
     }
@@ -244,7 +244,7 @@ public class BookingServiceImplTest {
 
         when(userRepository.existsById(anyLong())).thenReturn(true);
         when(bookingRepository.findAllByOwnerPast(anyLong(), any())).thenReturn(List.of(booking1));
-        bookingService.getByOwnerId(1l, BookingState.PAST, 0, 1);
+        bookingService.getByOwnerId(1L, BookingState.PAST, 0, 1);
 
         verify(bookingRepository).findAllByOwnerPast(anyLong(), any());
     }
