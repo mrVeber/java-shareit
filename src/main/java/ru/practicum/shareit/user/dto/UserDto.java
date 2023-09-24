@@ -24,6 +24,6 @@ public class UserDto {
 
     @NotEmpty(groups = Create.class)
     @Email(groups = {Create.class, Update.class})
-    @Size(max = 512, groups = {Create.class, Update.class})
+    @Size(max = 512)
     private String email;
 }

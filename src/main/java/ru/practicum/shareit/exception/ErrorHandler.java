@@ -1,6 +1,7 @@
 package ru.practicum.shareit.exception;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.http.HttpStatus;
@@ -9,73 +10,48 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import javax.validation.ConstraintViolationException;
-import java.util.Map;
 
 @RestControllerAdvice
 @Slf4j
 public class ErrorHandler {
 
+    @ExceptionHandler({MethodArgumentNotValidException.class, AvailableCheckException.class})
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse validateException(RuntimeException e) {
+        log.info(e.getMessage());
+        return new ErrorResponse(e.getMessage());
+    }
+
     @ExceptionHandler
+    public ResponseEntity<String> validateException(final ConstraintViolationException e) {
+        log.info(e.getMessage());
+        return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler({NotFoundException.class})
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    public Map<String, String> notFoundHandler(final NotFoundException e) {
-        log.warn("404 {}", e);
-        return Map.of("404 {}", e.toString());
+    public ErrorResponse entityNotFoundException(RuntimeException e) {
+        log.info(e.getMessage());
+        return new ErrorResponse(e.getMessage());
     }
 
-    @ExceptionHandler
+    @ExceptionHandler({DoubleEmailException.class})
     @ResponseStatus(HttpStatus.CONFLICT)
-    public Map<String, String> validationException(final ValidationException e) {
-        log.warn("409 {}", e);
-        return Map.of("409 {}", e.toString());
+    public ErrorResponse userNotUniqueEmailException(ValidationException e) {
+        log.info(e.getMessage());
+        return new ErrorResponse(e.getMessage());
     }
 
+    @ExceptionHandler({UnknownStatusException.class, NotExistInDataBase.class})
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ErrorResponse unknownStateHandler(RuntimeException e) {
+        log.error(e.getMessage());
+        return new ErrorResponse("Unknown state: UNSUPPORTED_STATUS");
+    }
     @ExceptionHandler
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public Map<String, String> throwableHandler(final Throwable e) {
-        log.warn("500 {}", e);
-        return Map.of("500 {}", e.toString());
-    }
-
-    @ExceptionHandler
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Map<String, String> availableHandler(final AvailableCheckException e) {
-        log.warn("400 {}", e);
-        return Map.of("400 {}", e.toString());
-    }
-
-    @ExceptionHandler
-    @ResponseStatus(HttpStatus.CONFLICT)
-    public Map<String, String> doubleEmailHandler(final DoubleEmailException e) {
-        log.warn("409 {}", e);
-        return Map.of("409 {}", e.toString());
-    }
-
-    @ExceptionHandler
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public Map<String, String> notExistInDataBaseHandler(final NotExistInDataBase e) {
-        log.warn("500 {}", e);
-        return Map.of("500 {}", e.toString());
-    }
-
-    @ExceptionHandler
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public Map<String, String> unknownStateHandler(final UnknownStatusException e) {
-        log.warn("500 {}", e);
-        return Map.of("error", "Unknown state: UNSUPPORTED_STATUS");
-
-    }
-
-    @ExceptionHandler
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Map<String, String> methodXXX(final MethodArgumentNotValidException e) {
-        log.warn("400 {}", e);
-        return Map.of("400 {}", e.toString());
-    }
-
-    @ExceptionHandler
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Map<String, String> methodXXX(final ConstraintViolationException e) {
-        log.warn("400 {}", e);
-        return Map.of("400 {}", e.toString());
+    public ErrorResponse handleThrowable(final Throwable e) {
+        log.error(e.getMessage());
+        return new ErrorResponse("Произошла непредвиденная ошибка.");
     }
 }

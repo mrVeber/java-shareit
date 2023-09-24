@@ -24,6 +24,7 @@ public class CommentMapperTest {
                 user1.getName(),
                 LocalDateTime.now());
 
+
         Comment comment1 = CommentMapper.toComment(commentDtoInput1, user1, item1);
 
         assertEquals(comment1.getId(), commentDtoInput1.getId());

@@ -18,6 +18,7 @@ public class CommentMapper {
                 commentDto.getCreated());
     }
 
+
     public CommentDtoInput toCommentDtoInput(Comment comment) {
         return new CommentDtoInput(comment.getId(),
                 comment.getText(),
