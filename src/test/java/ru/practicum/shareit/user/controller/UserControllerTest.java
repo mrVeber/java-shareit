@@ -1,132 +1,133 @@
 package ru.practicum.shareit.user.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-import ru.practicum.shareit.user.dto.UserDtoRequest;
-import ru.practicum.shareit.user.dto.UserDtoResponse;
-import ru.practicum.shareit.user.service.UserServiceImpl;
+import ru.practicum.shareit.exception.model.NotFoundException;
+import ru.practicum.shareit.user.dto.UserDto;
+import ru.practicum.shareit.user.service.UserService;
 
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import static org.hamcrest.Matchers.is;
+import java.util.Collections;
+import java.util.Objects;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.verify;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static ru.practicum.shareit.resource.UserData.*;
 
 @WebMvcTest(controllers = UserController.class)
-public class UserControllerTest {
-    @Autowired
-    ObjectMapper mapper;
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
+class UserControllerTest {
+    private final ObjectMapper objectMapper;
+    private final MockMvc mvc;
     @MockBean
-    UserServiceImpl userService;
-    @Autowired
-    private MockMvc mvc;
+    UserService userService;
 
-    private final long userId = 10L;
-    private final String userName = "userUser";
-    private final String userMail = "user@mail.com";
-    private final UserDtoRequest requestUserDto = UserDtoRequest.builder().name(userName).email(userMail).build();
-    private final UserDtoResponse responseUserDto = UserDtoResponse.builder().id(userId).name(userName).email(userMail)
-            .build();
+    @Test
+    void getAllTest() throws Exception {
+        when(userService.get()).thenReturn(Collections.singletonList(getUserDto()));
 
-    private final String newUserName = "newUser";
-    private final String newUserMail = "newUser@mail.com";
-    private final UserDtoRequest newDataUserDto = UserDtoRequest.builder().name(newUserName).email(newUserMail).build();
-    private final UserDtoResponse newResponseUserDto = UserDtoResponse.builder().id(userId).name(newUserName)
-            .email(newUserMail).build();
-
-    private List<UserDtoResponse> getResponseUserDtoList(UserDtoResponse responseUserDto) {
-        List<UserDtoResponse> responseUserDtoList = new ArrayList<>();
-        responseUserDtoList.add(responseUserDto);
-        return responseUserDtoList;
+        mvc.perform(get("/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(1L))
+                .andExpect(jsonPath("$[0].name").value("test_nazar"))
+                .andExpect(jsonPath("$[0].email").value("test_nazar@mail.ru"));
     }
 
     @Test
-    void testCreateUser() throws Exception {
-        when(userService.create(any()))
-                .thenReturn(responseUserDto);
+    void getByIdTest() throws Exception {
+        when(userService.get(1L)).thenReturn(getUserDto());
+
+        mvc.perform(get("/users/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1L))
+                .andExpect(jsonPath("$.name").value("test_nazar"))
+                .andExpect(jsonPath("$.email").value("test_nazar@mail.ru"));
+    }
+
+    @Test
+    void getById_whenNotFound() throws Exception {
+        when(userService.get(2L)).thenThrow(new NotFoundException("User with id = 2  not found"));
+
+        mvc.perform(get("/users/2")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound())
+                .andExpect(result -> assertTrue(result.getResolvedException() instanceof NotFoundException))
+                .andExpect(result -> assertEquals("User with id = 2  not found",
+                        Objects.requireNonNull(result.getResolvedException()).getMessage()));
+    }
+
+    @Test
+    void createTest() throws Exception {
+        when(userService.create(getUser())).thenReturn(getUserDto());
 
         mvc.perform(post("/users")
-                        .content(mapper.writeValueAsString(requestUserDto))
-                        .characterEncoding(StandardCharsets.UTF_8)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .accept(MediaType.APPLICATION_JSON))
+                        .accept(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(getUserDto())))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id", is(userId), Long.class))
-                .andExpect(jsonPath("$.name", is(requestUserDto.getName())))
-                .andExpect(jsonPath("$.email", is(requestUserDto.getEmail())));
+                .andExpect(jsonPath("$.id").value(1L))
+                .andExpect(jsonPath("$.name").value("test_nazar"))
+                .andExpect(jsonPath("$.email").value("test_nazar@mail.ru"));
     }
 
     @Test
-    void testGetUserById() throws Exception {
-        when(userService.getById(anyLong()))
-                .thenReturn(responseUserDto);
+    void updateTest() throws Exception {
+        when(userService.update(1L, getUpdateUser())).thenReturn(getUpdateDtoUser());
 
-        mvc.perform(get("/users/{id}", userId)
-                        .content(mapper.writeValueAsString(responseUserDto))
-                        .characterEncoding(StandardCharsets.UTF_8)
+        mvc.perform(patch("/users/1").content(objectMapper.writeValueAsString(getUpdateUser()))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .accept(MediaType.APPLICATION_JSON))
+                        .accept(MediaType.APPLICATION_JSON)
+                        .header("X-Sharer-User-Id", 1L))
                 .andExpect(status().isOk())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
-
-        verify(userService).getById(userId);
+                .andExpect(jsonPath("$.id").value(1L))
+                .andExpect(jsonPath("$.name").value("test_updated"))
+                .andExpect(jsonPath("$.email").value("updated@mail.ru"));
     }
 
     @Test
-    void testGetAllUsers() throws Exception {
-        List<UserDtoResponse> responseUserDtoList = getResponseUserDtoList(responseUserDto);
-        when(userService.getAll())
-                .thenReturn(responseUserDtoList);
-
-        String userDtoListString = mvc.perform(get("/users")
-                        .content(mapper.writeValueAsString(responseUserDtoList))
-                        .characterEncoding(StandardCharsets.UTF_8)
+    void create_Test_bad() throws Exception {
+        UserDto user = getUserDto();
+        user.setEmail("dwa");
+        mvc.perform(post("/users")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
-
-        assertEquals(mapper.writeValueAsString(responseUserDtoList), userDtoListString);
+                        .accept(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(user)))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
-    void testUpdateUser() throws Exception {
-        when(userService.update(anyLong(), any()))
-                .thenReturn(newResponseUserDto);
+    void update_whenNotFoundTest() throws Exception {
+        when(userService.update(1L, getUser()))
+                .thenThrow(new NotFoundException("test not found ok"));
 
-        mvc.perform(MockMvcRequestBuilders.patch("/users/{id}", userId)
-                        .content(mapper.writeValueAsString(newDataUserDto))
-                        .characterEncoding(StandardCharsets.UTF_8)
+        mvc.perform(patch("/users/1")
+                        .content(objectMapper.writeValueAsString(getUpdateDtoUser()))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id", is(userId), Long.class))
-                .andExpect(jsonPath("$.name", is(newDataUserDto.getName())))
-                .andExpect(jsonPath("$.email", is(newDataUserDto.getEmail())));
+                        .accept(MediaType.APPLICATION_JSON)
+                        .header("X-Sharer-User-Id", 1L))
+                .andExpect(status().isNotFound())
+                .andExpect(result -> assertTrue(result.getResolvedException() instanceof NotFoundException))
+                .andExpect(result -> assertEquals("test not found ok",
+                        Objects.requireNonNull(result.getResolvedException()).getMessage()));
     }
 
     @Test
-    void testDeleteUser() throws Exception {
-        mvc.perform(MockMvcRequestBuilders.delete("/users/{id}", userId))
+    void deleteTest() throws Exception {
+        mvc.perform(delete("/users/1"))
                 .andExpect(status().isOk());
-        verify(userService).delete(userId);
     }
 }

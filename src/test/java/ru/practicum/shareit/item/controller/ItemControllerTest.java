@@ -1,195 +1,163 @@
 package ru.practicum.shareit.item.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-import ru.practicum.shareit.booking.dto.ItemBookingDto;
-import ru.practicum.shareit.booking.model.BookingStatus;
-import ru.practicum.shareit.item.dto.*;
+import ru.practicum.shareit.booking.repository.BookingRepository;
+import ru.practicum.shareit.exception.model.NotFoundException;
+import ru.practicum.shareit.item.dto.CommentDto;
+import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.item.dto.ItemDtoBooking;
+import ru.practicum.shareit.item.mapper.ItemMapper;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.service.ItemService;
 import ru.practicum.shareit.user.model.User;
+import ru.practicum.shareit.user.mapper.UserMapper;
 
-import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
-import java.util.List;
-import static org.hamcrest.Matchers.is;
+import java.util.Collections;
+import java.util.Objects;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static ru.practicum.shareit.utils.Constants.X_SHARER_USER_ID;
+import static ru.practicum.shareit.resource.ItemData.getItemDto;
+import static ru.practicum.shareit.resource.ItemData.getItemDtoForUpdate;
+import static ru.practicum.shareit.resource.UserData.getUser;
+import static ru.practicum.shareit.resource.UserData.getUserDto;
 
 @WebMvcTest(controllers = ItemController.class)
-public class ItemControllerTest {
-    @Autowired
-    ObjectMapper mapper;
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
+class ItemControllerTest {
+    private final ObjectMapper objectMapper;
+    private final MockMvc mvc;
     @MockBean
     ItemService itemService;
-    @Autowired
-    private MockMvc mvc;
-
-    private final long ownerId = 10L;
-    private final String ownerName = "ownerUser";
-    private final String ownerMail = "owner@mail.com";
-    private final User owner = User.builder().id(ownerId).name(ownerName).email(ownerMail).build();
-
-    private final long oneBookerId = 12;
-    private final long twoBookerId = 13;
-
-    private final long authorId = 11;
-    private final String testAuthorName = "author";
-    private final User author = User.builder().id(authorId).name(testAuthorName).email("author@mail.com").build();
-
-    private final long itemId = 5L;
-    private final long oneBookingId = 301;
-    private final LocalDateTime startOneBooking = LocalDateTime.of(2023, 9, 1, 12,
-            10, 10);
-    private final LocalDateTime endOneBooking = LocalDateTime.of(2023, 9, 10, 12,
-            10, 10);
-    private final ItemBookingDto oneBookingDto = ItemBookingDto.builder().id(oneBookingId).start(startOneBooking)
-            .end(endOneBooking).status(BookingStatus.APPROVED).itemId(itemId).bookerId(oneBookerId).build();
-
-    private final long twoBookingId = 302;
-    private final LocalDateTime startTwoBooking = LocalDateTime.of(2023, 9, 11, 12,
-            10,10);
-    private final LocalDateTime endTwoBooking = LocalDateTime.of(2023, 9, 20, 12,
-            10,10);
-    private final ItemBookingDto twoBookingDto = ItemBookingDto.builder().id(twoBookingId).start(startTwoBooking)
-            .end(endTwoBooking).status(BookingStatus.APPROVED).itemId(itemId).bookerId(twoBookerId).build();
-
-    private final String itemName = "itemTest";
-    private final String itemDescription = "itemTestTestTest";
-    private final ItemDtoRequest requestItemDto = ItemDtoRequest.builder().name(itemName).description(itemDescription)
-            .available(true).requestId(0).build();
-    private final ItemDtoResponse responseItemDto = ItemDtoResponse.builder().id(itemId).name(itemName)
-            .description(itemDescription).available(true).requestId(0).build();
-    private final ItemDtoFullResponse fullResponseItemDto = ItemDtoFullResponse.builder().id(itemId).name(itemName)
-            .description(itemDescription).available(true).lastBooking(oneBookingDto).nextBooking(twoBookingDto).build();
-    private final String newItemName = "newItemTest";
-    private final String newItemDescription = "newItemTestTestTest";
-    private final ItemDtoRequest newDataItemDto = ItemDtoRequest.builder().name(newItemName)
-            .description(newItemDescription).available(true).requestId(0).build();
-    private final ItemDtoResponse newResponseItemDto = ItemDtoResponse.builder().id(itemId).name(newItemName)
-            .description(newItemDescription).available(true).requestId(0).build();
-
-    private final Item commentItem = Item.builder().id(itemId).name("Test").description("TestTestTestTestTest")
-            .available(true).owner(owner).build();
-
-    private final long testCommentId = 205;
-    private final CommentDtoRequest requestCommentDto = CommentDtoRequest.builder().text("TestTestTestTestTest").build();
-
-    private final CommentDtoResponse responseCommentDto = CommentDtoResponse.builder().id(testCommentId)
-            .text("TestTestTestTestTest").created(LocalDateTime.of(2023, 9, 1, 12, 0))
-            .authorName(testAuthorName).build();
+    @MockBean
+    BookingRepository bookingRepository;
 
     @Test
-    void testCreateItem() throws Exception {
-        when(itemService.create(any(), anyLong()))
-                .thenReturn(responseItemDto);
+    void getAllTest() throws Exception {
+        User user = UserMapper.toUser(getUserDto());
+        Item item = ItemMapper.toItem(getItemDto(), user, null);
+        ItemDtoBooking itemDtoBooking = ItemMapper.toItemDtoBooking(item);
+
+        when(itemService.getUserItems(anyLong(), any())).thenReturn(Collections.singletonList(itemDtoBooking));
+
+        mvc.perform(get("/items")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON)
+                        .header("X-Sharer-User-Id", 1L))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(1L))
+                .andExpect(jsonPath("$[0].name").value("name"))
+                .andExpect(jsonPath("$[0].description").value("description"));
+    }
+
+    @Test
+    void findItemTest() throws Exception {
+        User user = UserMapper.toUser(getUserDto());
+        Item item = ItemMapper.toItem(getItemDto(), user, null);
+        ItemDtoBooking itemDtoBooking = ItemMapper.toItemDtoBooking(item);
+        when(itemService.getById(anyLong(), anyLong())).thenReturn(itemDtoBooking);
+
+        mvc.perform(get("/items/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON)
+                        .header("X-Sharer-User-Id", 1L))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1L))
+                .andExpect(jsonPath("$.name").value("name"))
+                .andExpect(jsonPath("$.description").value("description"));
+    }
+
+    @Test
+    void createTest() throws Exception {
+        when(itemService.create(1L, getItemDto())).thenReturn(getItemDto());
 
         mvc.perform(post("/items")
-                        .header(X_SHARER_USER_ID, ownerId)
-                        .content(mapper.writeValueAsString(requestItemDto))
-                        .characterEncoding(StandardCharsets.UTF_8)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .accept(MediaType.APPLICATION_JSON))
+                        .accept(MediaType.APPLICATION_JSON)
+                        .header("X-Sharer-User-Id", 1L)
+                        .content(objectMapper.writeValueAsString(getItemDto())))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name", is(requestItemDto.getName())))
-                .andExpect(jsonPath("$.description", is(requestItemDto.getDescription())))
-                .andExpect(jsonPath("$.available", is(requestItemDto.getAvailable())))
-                .andExpect(jsonPath("$.requestId", is(requestItemDto.getRequestId()), Long.class));
+                .andExpect(jsonPath("$.id").value(1L))
+                .andExpect(jsonPath("$.name").value("name"))
+                .andExpect(jsonPath("$.description").value("description"));
     }
 
     @Test
-    void testGetItemById() throws Exception {
-        when(itemService.getById(anyLong(), anyLong()))
-                .thenReturn(fullResponseItemDto);
+    void updateTest() throws Exception {
+        ItemDto forUpdate = getItemDtoForUpdate();
+        when(itemService.update(anyLong(), any(), anyLong())).thenReturn(forUpdate);
 
-        mvc.perform(get("/items/{itemId}", itemId)
-                        .header(X_SHARER_USER_ID, ownerId)
-                        .characterEncoding(StandardCharsets.UTF_8)
+        mvc.perform(patch("/items/1")
+                        .content(objectMapper.writeValueAsString(forUpdate))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .accept(MediaType.APPLICATION_JSON))
+                        .accept(MediaType.APPLICATION_JSON)
+                        .header("X-Sharer-User-Id", 1L))
                 .andExpect(status().isOk())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
-
-        verify(itemService).getById(itemId, ownerId);
+                .andExpect(jsonPath("$.id").value(1L))
+                .andExpect(jsonPath("$.name").value("updated"))
+                .andExpect(jsonPath("$.description").value("updated description"));
     }
 
     @Test
-    void testGetItemsOneUser() throws Exception {
-        List<ItemDtoFullResponse> fullResponseItemDtoList = List.of(fullResponseItemDto);
-        when(itemService.getItemsOneOwner(anyLong(), anyInt(), anyInt()))
-                .thenReturn(fullResponseItemDtoList);
+    void update_whenItemNotFound() throws Exception {
+        ItemDto forUpdate = new ItemDto(1L, "updated", "updated description", true, null);
+        when(itemService.update(anyLong(), any(), anyLong())).thenThrow(new NotFoundException("Item not found"));
 
-        String itemDtoListString = mvc.perform(get("/items")
-                        .header(X_SHARER_USER_ID, ownerId)
-                        .param("from", "0")
-                        .param("size", "10")
-                        .characterEncoding(StandardCharsets.UTF_8)
+        mvc.perform(patch("/items/1")
+                        .content(objectMapper.writeValueAsString(forUpdate))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
-
-        assertEquals(mapper.writeValueAsString(fullResponseItemDtoList), itemDtoListString);
+                        .accept(MediaType.APPLICATION_JSON)
+                        .header("X-Sharer-User-Id", 1L))
+                .andExpect(status().isNotFound())
+                .andExpect(result -> assertTrue(result.getResolvedException() instanceof NotFoundException))
+                .andExpect(result -> assertEquals("Item not found",
+                        Objects.requireNonNull(result.getResolvedException()).getMessage()));
     }
 
     @Test
-    void testUpdateItem() throws Exception {
-        when(itemService.update(anyLong(), any(), anyLong()))
-                .thenReturn(newResponseItemDto);
+    void searchItemTest() throws Exception {
+        when(itemService.search(anyString(), any())).thenReturn(Collections.singletonList(getItemDto()));
 
-        mvc.perform(MockMvcRequestBuilders.patch("/items/{id}", itemId)
-                        .header(X_SHARER_USER_ID, ownerId)
-                        .content(mapper.writeValueAsString(newDataItemDto))
-                        .characterEncoding(StandardCharsets.UTF_8)
+        mvc.perform(get("/items/search?text=дрель")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .accept(MediaType.APPLICATION_JSON))
+                        .accept(MediaType.APPLICATION_JSON)
+                        .header("X-Sharer-User-Id", 1L))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id", is(itemId), Long.class))
-                .andExpect(jsonPath("$.name", is(newDataItemDto.getName())))
-                .andExpect(jsonPath("$.description", is(newDataItemDto.getDescription())))
-                .andExpect(jsonPath("$.available", is(newDataItemDto.getAvailable())))
-                .andExpect(jsonPath("$.requestId", is(newDataItemDto.getRequestId()), Long.class));
+                .andExpect(jsonPath("$[0].id").value(1L))
+                .andExpect(jsonPath("$[0].name").value("name"))
+                .andExpect(jsonPath("$[0].description").value("description"));
     }
 
     @Test
-    void testDeleteItem() throws Exception {
-        mvc.perform(MockMvcRequestBuilders.delete("/items/{id}", itemId)
-                        .header(X_SHARER_USER_ID, ownerId))
-                .andExpect(status().isOk());
-        verify(itemService).delete(itemId, ownerId);
-    }
+    void addCommentTest() throws Exception {
+        User user = getUser();
+        CommentDto commentDto = new CommentDto();
+        commentDto.setId(1L);
+        commentDto.setText("Test");
+        commentDto.setAuthorName(user.getName());
 
-    @Test
-    void testCreateComment() throws Exception {
-        when(itemService.createComment(anyLong(), any(), anyLong()))
-                .thenReturn(responseCommentDto);
+        when(itemService.createComment(anyLong(), any(), anyLong())).thenReturn(commentDto);
 
-        mvc.perform(post("/items/{itemId}/comment", itemId)
-                        .header(X_SHARER_USER_ID, ownerId)
-                        .content(mapper.writeValueAsString(requestCommentDto))
-                        .characterEncoding(StandardCharsets.UTF_8)
+        mvc.perform(post("/items/1/comment")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .accept(MediaType.APPLICATION_JSON))
+                        .accept(MediaType.APPLICATION_JSON)
+                        .header("X-Sharer-User-Id", 1L)
+                        .content(objectMapper.writeValueAsString(commentDto)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.authorName", is(author.getName())))
-                .andExpect(jsonPath("$.text", is(requestCommentDto.getText())));
+                .andExpect(jsonPath("$.id").value(1L))
+                .andExpect(jsonPath("$.text").value("Test"))
+                .andExpect(jsonPath("$.authorName").value(commentDto.getAuthorName()));
     }
 }

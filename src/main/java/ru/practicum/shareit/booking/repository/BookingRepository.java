@@ -1,56 +1,94 @@
 package ru.practicum.shareit.booking.repository;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
-import ru.practicum.shareit.booking.model.Booking;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 import ru.practicum.shareit.booking.model.BookingStatus;
+import ru.practicum.shareit.booking.model.Booking;
+import ru.practicum.shareit.item.model.Item;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Repository
 public interface BookingRepository extends JpaRepository<Booking, Long> {
-    String queryBasis = "SELECT b " +
-            "FROM Booking b " +
-            "JOIN Item i ON (i.id = b.item.id) " +
-            "JOIN User u ON (u.id = i.owner.id) ";
+    List<Booking> findAllByBookerIdOrderByStartDesc(long userId, PageRequest pageRequest);
 
-    Page<Booking> findAllByBookerId(Long bookerId, Pageable pageable);
+    @Query("select booking from Booking booking " +
+            "where ?2 between booking.start " +
+            "and booking.end " +
+            "and booking.booker.id = ?1 ")
+    List<Booking> findByBookerCurrent(long userId, LocalDateTime now, Sort sort, PageRequest pageRequest);
 
-    Page<Booking> findAllByBookerIdAndStartBeforeAndEndAfter(Long bookerId, LocalDateTime currentMomentOne,
-                                                             LocalDateTime currentMomentTwo, Pageable pageable);
+    @Query("select booking from Booking booking " +
+            "where booking.end < ?2 " +
+            "and booking.booker.id = ?1 ")
+    List<Booking> findByBookerPast(long userId, LocalDateTime end, Sort sort, PageRequest pageRequest);
 
-    Page<Booking> findAllByBookerIdAndEndBefore(Long bookerId, LocalDateTime currentMoment, Pageable pageable);
+    @Query("select booking from Booking booking "
+            + "where booking.start > ?2 "
+            + "and booking.booker.id = ?1 ")
+    List<Booking> findByBookerFuture(long userId, LocalDateTime start, Sort sort, PageRequest pageRequest);
 
-    Page<Booking> findAllByBookerIdAndStartAfter(Long bookerId, LocalDateTime currentMoment, Pageable pageable);
+    @Query("select booking from Booking booking " +
+            "where booking.status = ?2 " +
+            "and booking.booker.id = ?1 ")
+    List<Booking> findByBookerAndStatus(long userId, BookingStatus status, Sort sort, PageRequest pageRequest);
 
-    Page<Booking> findAllByBookerIdAndStatus(long bookerId, BookingStatus status, Pageable pageable);
+    List<Booking> findByItemOwnerId(long ownerId, Sort sort, PageRequest pageRequest);
 
-    @Query(queryBasis +
-            "WHERE i.owner.id = ?1")
-    Page<Booking> allBookersByOwnerId(long ownerId, Pageable pageable);
+    @Query("select booking from Booking booking " +
+            "where ?2 between booking.start " +
+            "and booking.end " +
+            "and booking.item.owner.id = ?1 ")
+    List<Booking> findByItemOwnerCurrent(long userId, LocalDateTime now, Sort sort, PageRequest pageRequest);
 
-    @Query(queryBasis +
-            "WHERE i.owner.id = ?1 AND b.start < ?2 AND b.end > ?2")
-    Page<Booking> currentBookersByOwnerId(Long bookerId, LocalDateTime currentMoment, Pageable pageable);
+    @Query("select booking from Booking booking " +
+            "where booking.end < ?2 " +
+            "and booking.item.owner.id = ?1 ")
+    List<Booking> findByItemOwnerPast(long userId, LocalDateTime end, Sort sort, PageRequest pageRequest);
 
-    @Query(queryBasis +
-            "WHERE i.owner.id = ?1 AND b.end < ?2")
-    Page<Booking> pastBookersByOwnerId(Long bookerId, LocalDateTime currentMoment, Pageable pageable);
+    @Query("select booking from Booking booking " +
+            "where booking.start > ?2 " +
+            "and booking.item.owner.id = ?1 ")
+    List<Booking> findByItemOwnerFuture(long userId, LocalDateTime start, Sort sort, PageRequest pageRequest);
 
-    @Query(queryBasis +
-            "WHERE i.owner.id = ?1 AND b.start > ?2")
-    Page<Booking> futureBookersByOwnerId(Long bookerId, LocalDateTime currentMoment, Pageable pageable);
+    @Query("select booking from Booking booking " +
+            "where booking.status = ?2 " +
+            "and booking.item.owner.id = ?1 ")
+    List<Booking> findByItemOwnerAndStatus(long userId, BookingStatus status, Sort sort, PageRequest pageRequest);
 
-    @Query(queryBasis +
-            "WHERE i.owner.id = ?1 AND b.status = ?2")
-    Page<Booking> bookersByStatusAndOwnerId(Long bookerId, BookingStatus status, Pageable pageable);
+    List<Booking> findByBookerIdAndItemIdAndEndBefore(long bookerId, long itemId, LocalDateTime end, Sort sort);
 
-    Boolean existsAllByBookerIdAndStatusAndEndBefore(Long bookerId, BookingStatus status, LocalDateTime currentMoment);
+    @Query("select distinct booking " +
+            "from Booking booking " +
+            "where booking.start <= :now " +
+            "and booking.item.id in :ids " +
+            "and booking.status = 'APPROVED' " +
+            "and booking.item.owner.id = :userId ")
+    List<Booking> findBookingsLast(@Param("ids") List<Long> ids,
+                                   @Param("now") LocalDateTime now,
+                                   @Param("userId") long userId,
+                                   Sort sort);
 
-    List<Booking> findByItemId(Long itemId, Sort sortByStart);
+    @Query("select distinct booking " +
+            "from Booking booking " +
+            "where booking.start > :now " +
+            "and booking.status = 'APPROVED' " +
+            "and booking.item.id in :ids " +
+            "and booking.item.owner.id = :userId ")
+    List<Booking> findBookingsNext(@Param("ids") List<Long> ids,
+                                   @Param("now") LocalDateTime now,
+                                   @Param("userId") long userId,
+                                   Sort sort);
 
-    List<Booking> findAllByItemIdInAndStatus(List<Long> itemIdList, BookingStatus status, Sort sortByStart);
+    @Query("select distinct booking " +
+            "from Booking booking " +
+            "where booking.status = 'APPROVED' " +
+            "and booking.item.id in :ids ")
+    List<Booking> findApprovedForItems(@Param("ids") List<Item> items,
+                                       Sort sort);
 }

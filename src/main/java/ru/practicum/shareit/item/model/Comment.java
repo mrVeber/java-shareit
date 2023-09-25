@@ -1,40 +1,43 @@
 package ru.practicum.shareit.item.model;
 
 import lombok.*;
+import org.hibernate.Hibernate;
 import ru.practicum.shareit.user.model.User;
-import javax.validation.constraints.NotBlank;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
+import java.util.Objects;
 
+@Entity
 @Getter
 @Setter
-@ToString
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-@Entity
-@Table(name = "comments", schema = "public")
+@Table(name = "COMMENTS")
 public class Comment {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long id;
-
-    @Column(name = "text", nullable = false)
-    @NotBlank
+    private Long id;
     private String text;
-
-    @Column(name = "created_time", nullable = false)
+    @ManyToOne
+    @JoinColumn(name = "item_id")
+    private Item item;
+    @ManyToOne
+    @JoinColumn(name = "author_id")
+    private User authorId;
     private LocalDateTime created;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "item_id", nullable = false)
-    @ToString.Exclude
-    private Item item;
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || Hibernate.getClass(this) != Hibernate.getClass(o)) return false;
+        Comment comment = (Comment) o;
+        return id != null && Objects.equals(id, comment.id);
+    }
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "author_id", nullable = false)
-    @ToString.Exclude
-    private User author;
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
 }
