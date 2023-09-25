@@ -14,8 +14,6 @@ import javax.validation.constraints.Positive;
 import javax.validation.constraints.PositiveOrZero;
 import java.util.List;
 
-import static ru.practicum.shareit.utils.Constants.X_SHARER_USER_ID;
-
 @Slf4j
 @RestController
 @Validated
@@ -23,6 +21,7 @@ import static ru.practicum.shareit.utils.Constants.X_SHARER_USER_ID;
 @RequestMapping("/bookings")
 public class BookingController {
     private final BookingService bookingService;
+    public static final String X_SHARER_USER_ID = "X-Sharer-User-Id";
 
     @PostMapping
     public BookingDtoFullResponse create(
