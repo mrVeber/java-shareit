@@ -2,24 +2,25 @@ package ru.practicum.shareit.item.repository;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import ru.practicum.shareit.item.model.Item;
-import ru.practicum.shareit.request.model.ItemRequest;
-
 import java.util.List;
 
 public interface ItemRepository extends JpaRepository<Item, Long> {
-    Page<Item> findAllByOwnerOrderByIdAsc(long id, Pageable pageable);
-
-    @Query("select i " +
-            "from Item i " +
-            "where (lower(i.name) like lower(concat('%', ?1, '%')) " +
-            "or lower(i.description) like lower(concat('%', ?1, '%'))) " +
-            "and i.available is true ")
+    @Query("SELECT i FROM Item i " +
+            "WHERE UPPER(i.name) LIKE UPPER(CONCAT('%', ?1, '%')) " +
+            "OR UPPER(i.description) LIKE UPPER(CONCAT('%', ?1, '%'))")
     Page<Item> search(String text, Pageable pageable);
 
-    List<Item> findByRequestIn(List<ItemRequest> requests, Sort sort);  // используеся для перевода в Map
+    Page<Item> findAllByOwnerId(Long userId, Pageable pageable);
+
+    Boolean existsAllByOwnerId(Long ownerId);
+
+    List<Item> findByItemRequestId(Long requestId);
+
+    List<Item>  findAllByItemRequestIdIn(List<Long> requestIdList);
+
+    List<Item> findByItemRequestIdIsNotNull();
 
 }
