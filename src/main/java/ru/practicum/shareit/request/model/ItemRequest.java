@@ -4,32 +4,22 @@ import lombok.*;
 import ru.practicum.shareit.user.model.User;
 
 import javax.persistence.*;
-import javax.validation.constraints.NotBlank;
 import java.time.LocalDateTime;
 
 @Getter
 @Setter
-@ToString
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 @Entity
-@Table(name = "requests", schema = "public")
+@Table(name = "requests")
 public class ItemRequest {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
-
-    @Column(name = "description", nullable = false)
-    @NotBlank
     private String description;
-
-    @Column(name = "created_time", nullable = false)
+    @ManyToOne
+    @JoinColumn(name = "requester_id")
+    private User requester;
     private LocalDateTime created;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "requestor_id", nullable = false)
-    @ToString.Exclude
-    private User requestor;
-
 }

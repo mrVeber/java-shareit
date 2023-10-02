@@ -3,71 +3,58 @@ package ru.practicum.shareit.user.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import ru.practicum.shareit.exception.model.*;
-import ru.practicum.shareit.user.dto.*;
-import ru.practicum.shareit.user.mapper.UserMapper;
+import ru.practicum.shareit.exception.model.NotFoundException;
 import ru.practicum.shareit.user.model.User;
+import ru.practicum.shareit.user.mapper.UserMapper;
+import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.repository.UserRepository;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
 
-    private User getUserById(long id) {
-        return userRepository.findById(id).orElseThrow(() -> new NotFoundException(String.format("Пользователь " +
-                "с id = %s отсутствует в БД. Выполнить операцию невозможно!", id)));
-    }
-
     @Override
-    public UserDtoResponse create(UserDtoRequest userDto) {
-        User user = userRepository.save(UserMapper.toUser(userDto));
-        log.info("Данные пользователя добавлены в БД: {}.", user);
-        UserDtoResponse responseUserDto = UserMapper.toResponseUserDto(user);
-        log.info("Новый пользователь создан: {}.", responseUserDto);
-        return responseUserDto;
-    }
-
-    @Override
-    public UserDtoResponse getById(long id) {
-        User user = getUserById(id);
-        log.info("Пользователь найден в БД: {}.", user);
-        UserDtoResponse userDto = UserMapper.toResponseUserDto(user);
-        log.info("Данные пользователя получены: {}.", userDto);
-        return userDto;
-    }
-
-    @Override
-    public List<UserDtoResponse> getAll() {
-        log.info("Получение данных всех пользователей из БД.");
-        List<UserDtoResponse> allUserDto = userRepository.findAll()
-                .stream()
-                .map(UserMapper::toResponseUserDto)
+    public List<UserDto> get() {
+        return userRepository.findAll().stream()
+                .map(UserMapper::toUserDto)
                 .collect(Collectors.toList());
-        log.info("Сформирован список всех пользователей в количестве: {}.", allUserDto.size());
-        return allUserDto;
     }
 
     @Override
-    public UserDtoResponse update(long id, UserDtoRequest userDto) {
-        User user = getUserById(id);
-        log.info("Пользователь найден в БД: {}.", user);
-        User newDataUser = userRepository.save(UserMapper.toUpdatedUser(user, userDto));
-        log.info("Данные пользователя обновлены в БД: {}.", newDataUser);
-        UserDtoResponse responseUserDto = UserMapper.toResponseUserDto(newDataUser);
-        log.info("Данные пользователя обновлены: {}.", responseUserDto);
-        return responseUserDto;
+    public UserDto get(long id) {
+        return UserMapper.toUserDto(userRepository.findById(id).orElseThrow(()
+                -> new NotFoundException("User with id = " + id + " not found")));
+    }
+
+    @Override
+    public UserDto create(User user) {
+        return UserMapper.toUserDto(userRepository.save(user));
+    }
+
+    @Override
+    public UserDto update(long id, User user) {
+        User userInMem = userRepository.findById(id).orElseThrow(()
+                -> new NotFoundException("User with id = " + id + " not found"));
+
+        if (!Objects.isNull(user.getEmail())
+                && !user.getEmail().isBlank()) {
+            userInMem.setEmail(user.getEmail());
+        }
+        if (!Objects.isNull(user.getName()) && !user.getName().isBlank()) {
+            userInMem.setName(user.getName());
+        }
+
+        return UserMapper.toUserDto(userInMem);
     }
 
     @Override
     public void delete(long id) {
-        User user = getUserById(id);
-        log.info("Пользователь найден в БД: {}.", user);
-        userRepository.delete(user);
-        log.info("Все данные пользователя удалены.");
+        userRepository.findById(id).ifPresent(userRepository::delete);
     }
 }

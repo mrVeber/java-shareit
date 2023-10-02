@@ -4,56 +4,50 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import ru.practicum.shareit.request.dto.*;
+import ru.practicum.shareit.validators.Create;
+import ru.practicum.shareit.request.dto.ItemRequestDtoRQ;
+import ru.practicum.shareit.request.dto.ItemRequestDtoRS;
 import ru.practicum.shareit.request.service.ItemRequestService;
-import javax.validation.Valid;
 
 import javax.validation.constraints.Positive;
-import javax.validation.constraints.Min;
+import javax.validation.constraints.PositiveOrZero;
 import java.util.List;
 
-import static ru.practicum.shareit.utils.Constants.X_SHARER_USER_ID;
-
-@RestController
-@RequestMapping(path = "/requests")
-@RequiredArgsConstructor
-@Validated
 @Slf4j
+@Validated
+@RestController
+@RequiredArgsConstructor
+@RequestMapping(path = "/requests")
 public class ItemRequestController {
     private final ItemRequestService itemRequestService;
 
-    @PostMapping
-    public ItemRequestDtoResponse createItemRequest(@RequestHeader(X_SHARER_USER_ID) long userId,
-                                                    @RequestBody @Valid ItemRequestDtoRequest request) {
-        log.info("");
-        log.info("От пользователя с id = {} добавление нового запроса на вещь: {}", userId, request);
-        return itemRequestService.create(request, userId);
-    }
+    public static final String X_SHARER_USER_ID = "X-Sharer-User-Id";
 
-    @GetMapping("/{requestId}")
-    public ItemRequestDtoFullResponse getRequestsById(@RequestHeader(X_SHARER_USER_ID) long userId,
-                                                      @PathVariable @Positive long requestId) {
-        log.info("");
-        log.info("Получение данных запроса по id = {} ", requestId);
-        return itemRequestService.getById(requestId, userId);
+    @PostMapping
+    public ItemRequestDtoRS create(
+            @RequestHeader(X_SHARER_USER_ID) long userId,
+            @Validated(Create.class) @RequestBody ItemRequestDtoRQ itemRequestDtoRQ) {
+        return itemRequestService.create(userId, itemRequestDtoRQ);
     }
 
     @GetMapping
-    public List<ItemRequestDtoFullResponse> getOwnItemRequests(@RequestHeader(X_SHARER_USER_ID) long userId) {
-        log.info("");
-        log.info("Поиск пользователем с id = {} всех своих запросов с ответами на них", userId);
-        return itemRequestService.getOwnItemRequests(userId);
+    public List<ItemRequestDtoRS> getRequestsInfo(
+            @RequestHeader(X_SHARER_USER_ID) long userId) {
+        return itemRequestService.getInfo(userId);
+    }
+
+    @GetMapping("/{requestId}")
+    public ItemRequestDtoRS getRequestInfo(
+            @RequestHeader(X_SHARER_USER_ID) long userId,
+            @PathVariable long requestId) {
+        return itemRequestService.getInfo(userId, requestId);
     }
 
     @GetMapping("/all")
-    public List<ItemRequestDtoFullResponse> getAllRequests(@RequestHeader(X_SHARER_USER_ID) long userId,
-                                                           @RequestParam(defaultValue = "0")  @Min(0) int from,
-                                                           @RequestParam(defaultValue = "10")  @Min(1) int size) {
-        log.info("");
-        log.info("Поиск всех запросов пользователей, на которые можно предложить свои вещи");
-        return itemRequestService.getAll(userId, from, size);
+    public List<ItemRequestDtoRS> getRequestsList(
+            @RequestHeader(X_SHARER_USER_ID) long userId,
+            @PositiveOrZero @RequestParam(defaultValue = "0") int from,
+            @Positive @RequestParam(defaultValue = "10") int size) {
+        return itemRequestService.getRequests(userId, from, size);
     }
 }

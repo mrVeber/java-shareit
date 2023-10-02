@@ -1,56 +1,55 @@
 package ru.practicum.shareit.user.controller;
 
-import org.springframework.web.bind.annotation.*;
 import lombok.RequiredArgsConstructor;
-import org.springframework.validation.annotation.Validated;
-import ru.practicum.shareit.user.dto.*;
 import lombok.extern.slf4j.Slf4j;
-import ru.practicum.shareit.user.service.UserServiceImpl;
-import ru.practicum.shareit.validators.Create;
-import ru.practicum.shareit.validators.Update;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
+import ru.practicum.shareit.validators.*;
+import ru.practicum.shareit.user.mapper.UserMapper;
+import ru.practicum.shareit.user.dto.UserDto;
+import ru.practicum.shareit.user.service.UserService;
 
 import java.util.List;
 
-@RestController
-@RequestMapping(path = "/users")
-@RequiredArgsConstructor
 @Slf4j
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/users")
 public class UserController {
-    private final UserServiceImpl userService;
+    private final UserService userService;
 
     @PostMapping
-    public UserDtoResponse createUser(@RequestBody @Validated(Create.class) UserDtoRequest userDto) {
-        log.info("");
-        log.info("Добавление нового пользователя: {}", userDto);
-        return userService.create(userDto);
-    }
-
-    @GetMapping("/{id}")
-    public UserDtoResponse getUserById(@PathVariable long id) {
-        log.info("");
-        log.info("Получение данных пользователя с id = {}", id);
-        return userService.getById(id);
-    }
-
-    @GetMapping
-    public List<UserDtoResponse> getAllUsers() {
-        log.info("");
-        log.info("Поиск всех пользователей");
-        return userService.getAll();
+    public UserDto create(
+            @Validated(Create.class) @RequestBody UserDto userDto) {
+        log.info("Received a request to add a new user");
+        return userService.create(UserMapper.toUser(userDto));
     }
 
     @PatchMapping("/{id}")
-    public UserDtoResponse updateUser(@PathVariable long id,
-                                      @RequestBody @Validated(Update.class) UserDtoRequest userDto) {
-        log.info("");
-        log.info("Обновление данных пользователя с id = {}: {}", id, userDto);
-        return userService.update(id, userDto);
+    public UserDto put(
+            @PathVariable Long id,
+            @Validated(Update.class) @RequestBody UserDto userDto) {
+        log.info("Received a request to update a user with id {}", id);
+        return userService.update(id, UserMapper.toUser(userDto));
+    }
+
+    @GetMapping
+    public List<UserDto> get() {
+        log.info("Received a request to get all users");
+        return userService.get();
+    }
+
+    @GetMapping("/{id}")
+    public UserDto get(
+            @PathVariable Long id) {
+        log.info("Received a request to get user with id: {} ", id);
+        return userService.get(id);
     }
 
     @DeleteMapping("/{id}")
-    public void deleteUser(@PathVariable long id) {
-        log.info("");
-        log.info("Удаление всех данных пользователя c id = {}", id);
+    public void delete(
+            @PathVariable Long id) {
+        log.info("Received a request to remove user with id: {} ", id);
         userService.delete(id);
     }
 }

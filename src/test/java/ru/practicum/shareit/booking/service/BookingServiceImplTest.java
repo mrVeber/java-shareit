@@ -4,393 +4,330 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import ru.practicum.shareit.booking.dto.BookingDtoRequest;
-import ru.practicum.shareit.booking.dto.BookingDtoResponse;
-import ru.practicum.shareit.booking.model.Booking;
+import org.springframework.data.domain.PageRequest;
+import ru.practicum.shareit.booking.mapper.BookingMapper;
 import ru.practicum.shareit.booking.model.BookingStatus;
+import ru.practicum.shareit.booking.model.Booking;
+import ru.practicum.shareit.booking.dto.BookingDtoCreate;
+import ru.practicum.shareit.booking.dto.BookingDtoFullResponse;
 import ru.practicum.shareit.booking.repository.BookingRepository;
+import ru.practicum.shareit.exception.model.BadRequestException;
 import ru.practicum.shareit.exception.model.NotFoundException;
-import ru.practicum.shareit.item.dto.ItemDtoResponse;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.repository.ItemRepository;
-import ru.practicum.shareit.user.dto.UserDtoResponse;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.repository.UserRepository;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class BookingServiceImplTest {
+class BookingServiceImplTest {
     @Mock
-    private BookingRepository bookingRepository;
+    UserRepository userRepository;
     @Mock
-    private ItemRepository itemRepository;
+    BookingRepository bookingRepository;
     @Mock
-    private UserRepository userRepository;
-
+    ItemRepository itemRepository;
     @InjectMocks
-    private BookingServiceImpl bookingService;
+    BookingServiceImpl bookingService;
 
-    private final long bookerId = 10L;
-    private final String bookerName = "bookerUser";
-    private final String bookerMail = "booker@mail.com";
-    private final User booker = User.builder().id(bookerId).name(bookerName).email(bookerMail).build();
-    private final UserDtoResponse responseBookerDto = UserDtoResponse.builder().id(bookerId).name(bookerName)
-            .email(bookerMail).build();
+    BookingDtoCreate bookingDtoCreate = new BookingDtoCreate(
+            1L,
+            LocalDateTime.now().minusHours(2),
+            LocalDateTime.now().minusHours(1),
+            1L
+    );
+    User user = new User(
+            1L,
+            "name",
+            "email@email.ru");
+    User user2 = new User(
+            2L,
+            "name",
+            "email@email.ru");
+    Item item = new Item(
+            1L,
+            "name",
+            "description",
+            true,
+            user,
+            null);
 
-    private final long notExistingBookerId = 9999L;
+    @Test
+    void create_whenItemNotFound() {
+        when(itemRepository.findById(anyLong())).thenReturn(Optional.empty());
 
-    private final long ownerId = 11L;
-    private final String ownerName = "ownerUser";
-    private final String ownerMail = "owner@mail.com";
-    private final User owner = User.builder().id(ownerId).name(ownerName).email(ownerMail).build();
-
-    private final long itemId = 5L;
-    private final String itemName = "itemTest";
-    private final String itemDescription = "itemTestTestTest";
-    private final Item item = Item.builder().id(itemId).name(itemName).description(itemDescription).available(true)
-            .owner(owner).build();
-    private final ItemDtoResponse responseItemDto = ItemDtoResponse.builder().id(itemId).name(itemName)
-            .description(itemDescription).available(true).requestId(0).build();
-
-    private final long notExistingItemId = 99999L;
-
-    private final long bookingId = 300L;
-    private final LocalDateTime bookingStartOne = LocalDateTime.of(2023, 9, 11, 12, 0);
-    private final LocalDateTime bookingEndOne = LocalDateTime.of(2023, 9, 12, 12, 0);
-    private final BookingDtoRequest requestBookingDto = BookingDtoRequest.builder().start(bookingStartOne)
-            .end(bookingEndOne).itemId(itemId).build();
-    private final Booking booking = Booking.builder().id(bookingId).start(bookingStartOne).end(bookingEndOne)
-            .status(BookingStatus.WAITING).item(item).booker(booker).build();
-    private final Booking bookingApproved = Booking.builder().id(bookingId).start(bookingStartOne).end(bookingEndOne)
-            .status(BookingStatus.APPROVED).item(item).booker(booker).build();
-    private final Booking bookingNotApproved = Booking.builder().id(bookingId).start(bookingStartOne).end(bookingEndOne)
-            .status(BookingStatus.REJECTED).item(item).booker(booker).build();
-    private final BookingDtoResponse responseBookingDto = BookingDtoResponse.builder().id(bookingId)
-            .start(bookingStartOne).end(bookingEndOne).status(BookingStatus.WAITING).item(responseItemDto)
-            .booker(responseBookerDto).build();
-    private final BookingDtoResponse responseBookingApprovedDto = BookingDtoResponse.builder().id(bookingId)
-            .start(bookingStartOne).end(bookingEndOne).status(BookingStatus.APPROVED).item(responseItemDto)
-            .booker(responseBookerDto).build();
-    private final BookingDtoResponse responseBookingNotApprovedDto = BookingDtoResponse.builder().id(bookingId)
-            .start(bookingStartOne).end(bookingEndOne).status(BookingStatus.REJECTED).item(responseItemDto)
-            .booker(responseBookerDto).build();
-
-    private final long notExistingBookingId = 999L;
-
-    private Page<Booking> getBookingPage(Booking booking) {
-        List<Booking> bookingList = new ArrayList<>();
-        bookingList.add(booking);
-        Page<Booking> bookings = new PageImpl<>(bookingList);
-        return bookings;
+        NotFoundException ex = assertThrows(NotFoundException.class,
+                () -> bookingService.create(1L, bookingDtoCreate));
+        assertEquals("Item with id = 1 not found", ex.getMessage());
     }
 
     @Test
-    void createBookingTest() {
-        Mockito.when(userRepository.findById(Mockito.anyLong()))
-                .thenReturn(Optional.ofNullable(booker));
-        Mockito.when(itemRepository.findById(Mockito.anyLong()))
-                .thenReturn(Optional.ofNullable(item));
-        Mockito.when(bookingRepository.save(Mockito.any()))
-                .thenReturn(booking);
+    void create_whenUserNotFound() {
+        when(itemRepository.findById(anyLong())).thenReturn(Optional.ofNullable(item));
+        when(userRepository.findById(anyLong())).thenReturn(Optional.empty());
 
-        assertEquals(bookingService.create(requestBookingDto, bookerId), responseBookingDto);
+        NotFoundException ex = assertThrows(NotFoundException.class,
+                () -> bookingService.create(1L, bookingDtoCreate));
+        assertEquals("User with id = 1 not found", ex.getMessage());
     }
 
     @Test
-    void createBookingNotExistingUserTest() {
-        Mockito.when(userRepository.findById(Mockito.any()))
-                .thenThrow(new NotFoundException(String.format("Пользователь с id = %s отсутствует в БД. " +
-                        "Выполнить операцию невозможно!", notExistingBookerId)));
-        Exception exception = assertThrows(NotFoundException.class, () -> bookingService.create(requestBookingDto,
-                notExistingBookerId));
+    void create_whenOwnerTryingToBookHisItem() {
+        when(itemRepository.findById(anyLong())).thenReturn(Optional.ofNullable(item));
+        when(userRepository.findById(anyLong())).thenReturn(Optional.ofNullable(user2));
 
-        assertEquals("Пользователь с id = " + notExistingBookerId + " отсутствует в БД. Выполнить операцию невозможно!",
-                exception.getMessage());
+        NotFoundException ex = assertThrows(NotFoundException.class,
+                () -> bookingService.create(1L, bookingDtoCreate));
+        assertEquals("Unable to book your own", ex.getMessage());
     }
 
     @Test
-    void createBookingNotExistingItemTest() {
-        Mockito.when(userRepository.findById(Mockito.anyLong()))
-                .thenReturn(Optional.ofNullable(booker));
-        Mockito.when(itemRepository.findById(Mockito.any()))
-                .thenThrow(new NotFoundException(String.format("Вещь с id = %s отсутствует в БД. " +
-                        "Выполнить операцию невозможно!", notExistingItemId)));
-        Exception exception = assertThrows(NotFoundException.class, () -> bookingService.create(requestBookingDto,
-                notExistingItemId));
+    void create_whenItemNotAvailable() {
+        Item itemTest = item;
+        itemTest.setId(49L);
+        itemTest.setAvailable(false);
+        bookingDtoCreate.setItemId(49L);
 
-        assertEquals("Вещь с id = " + notExistingItemId + " отсутствует в БД. Выполнить операцию невозможно!",
-                exception.getMessage());
-    }
+        when(itemRepository.findById(anyLong())).thenReturn(Optional.ofNullable(item));
+        when(userRepository.findById(anyLong())).thenReturn(Optional.ofNullable(user2));
 
-
-
-    @Test
-    void approveBookingTest() {
-        Mockito.when(userRepository.findById(Mockito.anyLong()))
-                .thenReturn(Optional.ofNullable(owner));
-        Mockito.when(itemRepository.findById(Mockito.anyLong()))
-                .thenReturn(Optional.ofNullable(item));
-        Mockito.when(bookingRepository.findById(Mockito.anyLong()))
-                .thenReturn(Optional.ofNullable(booking));
-        Mockito.when(bookingRepository.save(Mockito.any()))
-                .thenReturn(bookingApproved);
-        Mockito.when(userRepository.findById(Mockito.anyLong()))
-                .thenReturn(Optional.ofNullable(booker));
-
-        assertEquals(bookingService.approve(bookingId, true, ownerId), responseBookingApprovedDto);
+        BadRequestException ex = assertThrows(BadRequestException.class,
+                () -> bookingService.create(4L, bookingDtoCreate));
+        assertEquals("Item not available for booking now", ex.getMessage());
     }
 
     @Test
-    void notApproveBookingTest() {
-        Mockito.when(userRepository.findById(Mockito.anyLong()))
-                .thenReturn(Optional.ofNullable(owner));
-        Mockito.when(itemRepository.findById(Mockito.anyLong()))
-                .thenReturn(Optional.ofNullable(item));
-        Mockito.when(bookingRepository.findById(Mockito.anyLong()))
-                .thenReturn(Optional.ofNullable(booking));
-        Mockito.when(bookingRepository.save(Mockito.any()))
-                .thenReturn(bookingNotApproved);
-        Mockito.when(userRepository.findById(Mockito.anyLong()))
-                .thenReturn(Optional.ofNullable(booker));
-
-        assertEquals(bookingService.approve(bookingId, false, ownerId), responseBookingNotApprovedDto);
+    void changeStatus_whenBookingNotFound() {
+        when(bookingRepository.findById(anyLong())).thenReturn(Optional.empty());
+        when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
+        NotFoundException ex = assertThrows(NotFoundException.class,
+                () -> bookingService.update(1L, 1L, true));
+        assertEquals("Booking with id = 1 not found", ex.getMessage());
     }
 
     @Test
-    void getBookingByIdTest() {
-        Mockito.when(userRepository.findById(Mockito.anyLong()))
-                .thenReturn(Optional.ofNullable(owner));
-        Mockito.when(itemRepository.findById(Mockito.anyLong()))
-                .thenReturn(Optional.ofNullable(item));
-        Mockito.when(bookingRepository.findById(Mockito.anyLong()))
-                .thenReturn(Optional.ofNullable(bookingApproved));
-        Mockito.when(userRepository.findById(Mockito.anyLong()))
-                .thenReturn(Optional.ofNullable(booker));
+    void changeStatus_whenBooking_REJECTED() {
+        Booking booking = BookingMapper.toBooking(bookingDtoCreate, item, user);
+        when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
 
-        assertEquals(bookingService.getById(bookingId, ownerId), responseBookingApprovedDto);
+        booking.setStatus(BookingStatus.REJECTED);
+        when(bookingRepository.findById(anyLong())).thenReturn(Optional.of(booking));
+
+        BadRequestException ex = assertThrows(BadRequestException.class,
+                () -> bookingService.update(1L, 1L, true));
+        assertEquals("This booking can't changed status", ex.getMessage());
     }
 
     @Test
-    void getNotExistingBookingByIdTest() {
-        Mockito.when(userRepository.findById(Mockito.anyLong()))
-                .thenReturn(Optional.ofNullable(owner));
-        Mockito.when(bookingRepository.findById(Mockito.any()))
-                .thenThrow(new NotFoundException(String.format("Бронирование с id = %s отсутствует в БД. " +
-                        "Выполнить операцию невозможно!", notExistingBookingId)));
-        Exception exception = assertThrows(NotFoundException.class, () -> bookingService.getById(notExistingBookingId,
-                ownerId));
+    void changeStatus_whenBooking_APPROVED() {
+        Booking booking = BookingMapper.toBooking(bookingDtoCreate, item, user);
+        when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
 
-        assertEquals("Бронирование с id = " + notExistingBookingId + " отсутствует в БД. Выполнить операцию невозможно!",
-                exception.getMessage());
+        booking.setStatus(BookingStatus.APPROVED);
+        when(bookingRepository.findById(anyLong())).thenReturn(Optional.of(booking));
+
+        BadRequestException ex = assertThrows(BadRequestException.class,
+                () -> bookingService.update(1L, 1L, true));
+        assertEquals("This booking can't changed status", ex.getMessage());
     }
 
     @Test
-    void getBookingsOneBookerTest() {
-        Mockito.when(userRepository.findById(Mockito.anyLong()))
-                .thenReturn(Optional.ofNullable(booker));
-        Mockito.when(bookingRepository.findAllByBookerId(Mockito.anyLong(), Mockito.any()))
-                .thenReturn(getBookingPage(bookingApproved));
+    void getBookingInfo_whenOwner_thenReturnInfo() {
+        Booking booking = BookingMapper.toBooking(bookingDtoCreate, item, user);
+        when(bookingRepository.findById(anyLong())).thenReturn(Optional.of(booking));
 
-        assertEquals(bookingService.getBookingsOneBooker(bookerId, "ALL", 0, 10),
-                List.of(responseBookingApprovedDto));
+        BookingDtoFullResponse resp = bookingService.get(user.getId(), booking.getId());
+        assertNotNull(resp);
+        assertEquals(booking.getItem().getName(), resp.getItem().getName());
     }
 
     @Test
-    void getBookingsOneBookerEmptyTest() {
-        Mockito.when(userRepository.findById(Mockito.anyLong()))
-                .thenReturn(Optional.ofNullable(booker));
-        List<Booking> bookingList = new ArrayList<>();
-        Page<Booking> bookings = new PageImpl<>(bookingList);
-        Mockito.when(bookingRepository.findAllByBookerId(Mockito.anyLong(), Mockito.any()))
-                .thenReturn(bookings);
+    void getBookingInfo_whenNotOwner() {
+        Booking booking = BookingMapper.toBooking(bookingDtoCreate, item, user);
+        when(bookingRepository.findById(anyLong())).thenReturn(Optional.of(booking));
 
-        assertEquals(bookingService.getBookingsOneBooker(bookerId, "ALL", 0, 10),
-                new ArrayList<>());
+        NotFoundException ex = assertThrows(NotFoundException.class,
+                () -> bookingService.get(booking.getId(), 999L));
+        assertEquals("User with id 999 can't see this information", ex.getMessage());
     }
 
     @Test
-    void getBookingsOneBookerStateCurrentTest() {
-        LocalDateTime currentBookingStart = LocalDateTime.of(2023, 9, 1, 12, 0);
-        LocalDateTime currentBookingEnd = LocalDateTime.of(2023, 9, 30, 12, 0);
-        bookingApproved.setStart(currentBookingStart);
-        bookingApproved.setEnd(currentBookingEnd);
-        responseBookingApprovedDto.setStart(currentBookingStart);
-        responseBookingApprovedDto.setEnd(currentBookingEnd);
+    void getBookingInfo_whenBookingNotFound() {
+        when(bookingRepository.findById(anyLong())).thenReturn(Optional.empty());
 
-        Mockito.when(userRepository.findById(Mockito.anyLong()))
-                .thenReturn(Optional.ofNullable(booker));
-        Mockito.when(bookingRepository.findAllByBookerIdAndStartBeforeAndEndAfter(Mockito.anyLong(), Mockito.any(),
-                        Mockito.any(), Mockito.any()))
-                .thenReturn(getBookingPage(bookingApproved));
-
-        assertEquals(bookingService.getBookingsOneBooker(bookerId, "CURRENT", 0, 10),
-                List.of(responseBookingApprovedDto));
+        NotFoundException ex = assertThrows(NotFoundException.class,
+                () -> bookingService.get(1L, 1L));
+        assertEquals("Booking with id 1 was not found", ex.getMessage());
     }
 
     @Test
-    void getBookingsOneBookerStatePastTest() {
-        LocalDateTime currentBookingStart = LocalDateTime.of(2023, 8, 1, 12, 0);
-        LocalDateTime currentBookingEnd = LocalDateTime.of(2023, 8, 31, 12, 0);
-        bookingApproved.setStart(currentBookingStart);
-        bookingApproved.setEnd(currentBookingEnd);
-        responseBookingApprovedDto.setStart(currentBookingStart);
-        responseBookingApprovedDto.setEnd(currentBookingEnd);
+    void getByBooker_whenBookerAllState() {
+        Booking booking = BookingMapper.toBooking(bookingDtoCreate, item, user);
+        when(userRepository.findById(anyLong())).thenReturn(Optional.ofNullable(user));
+        when(bookingRepository.findAllByBookerIdOrderByStartDesc(anyLong(), any())).thenReturn(Collections.singletonList(booking));
 
-        Mockito.when(userRepository.findById(Mockito.anyLong()))
-                .thenReturn(Optional.ofNullable(booker));
-        Mockito.when(bookingRepository.findAllByBookerIdAndEndBefore(Mockito.anyLong(), Mockito.any(), Mockito.any()))
-                .thenReturn(getBookingPage(bookingApproved));
-
-        assertEquals(bookingService.getBookingsOneBooker(bookerId, "PAST", 0, 10),
-                List.of(responseBookingApprovedDto));
+        List<BookingDtoFullResponse> resp = bookingService.getBookings(user.getId(), "ALL", PageRequest.ofSize(1));
+        assertFalse(resp.isEmpty());
+        assertEquals(booking.getItem().getName(), resp.get(0).getItem().getName());
+        verify(bookingRepository, times(1)).findAllByBookerIdOrderByStartDesc(anyLong(), any());
     }
 
     @Test
-    void getBookingsOneBookerStateFutureTest() {
-        LocalDateTime currentBookingStart = LocalDateTime.of(2023, 10, 1, 12, 0);
-        LocalDateTime currentBookingEnd = LocalDateTime.of(2023, 10, 31, 12, 0);
-        bookingApproved.setStart(currentBookingStart);
-        bookingApproved.setEnd(currentBookingEnd);
-        responseBookingApprovedDto.setStart(currentBookingStart);
-        responseBookingApprovedDto.setEnd(currentBookingEnd);
+    void getByBooker_whenBookerCurrentState() {
+        Booking booking = BookingMapper.toBooking(bookingDtoCreate, item, user);
+        when(userRepository.findById(anyLong())).thenReturn(Optional.ofNullable(user));
+        when(bookingRepository.findByBookerCurrent(anyLong(), any(), any(), any())).thenReturn(Collections.singletonList(booking));
 
-        Mockito.when(userRepository.findById(Mockito.anyLong()))
-                .thenReturn(Optional.ofNullable(booker));
-        Mockito.when(bookingRepository.findAllByBookerIdAndStartAfter(Mockito.anyLong(), Mockito.any(), Mockito.any()))
-                .thenReturn(getBookingPage(bookingApproved));
-
-        assertEquals(bookingService.getBookingsOneBooker(bookerId, "FUTURE", 0, 10),
-                List.of(responseBookingApprovedDto));
+        List<BookingDtoFullResponse> resp = bookingService.getBookings(user.getId(), "CURRENT", PageRequest.ofSize(1));
+        assertFalse(resp.isEmpty());
+        assertEquals(booking.getItem().getName(), resp.get(0).getItem().getName());
+        verify(bookingRepository, times(1)).findByBookerCurrent(anyLong(), any(), any(), any());
     }
 
     @Test
-    void getBookingsOneBookerStateWaitingTest() {
-        Mockito.when(userRepository.findById(Mockito.anyLong()))
-                .thenReturn(Optional.ofNullable(booker));
-        Mockito.when(bookingRepository.findAllByBookerIdAndStatus(Mockito.anyLong(), Mockito.any(), Mockito.any()))
-                .thenReturn(getBookingPage(booking));
+    void getByBooker_whenBookerPastState() {
+        Booking booking = BookingMapper.toBooking(bookingDtoCreate, item, user);
+        when(userRepository.findById(anyLong())).thenReturn(Optional.ofNullable(user));
+        when(bookingRepository.findByBookerPast(anyLong(), any(), any(), any())).thenReturn(Collections.singletonList(booking));
 
-        assertEquals(bookingService.getBookingsOneBooker(bookerId, "WAITING", 0, 10),
-                List.of(responseBookingDto));
+        List<BookingDtoFullResponse> resp = bookingService.getBookings(user.getId(), "PAST", PageRequest.ofSize(1));
+        assertFalse(resp.isEmpty());
+        assertEquals(booking.getItem().getName(), resp.get(0).getItem().getName());
+        verify(bookingRepository, times(1)).findByBookerPast(anyLong(), any(), any(), any());
     }
 
     @Test
-    void getBookingsOneBookerStateRejectedTest() {
-        Mockito.when(userRepository.findById(Mockito.anyLong()))
-                .thenReturn(Optional.ofNullable(booker));
-        Mockito.when(bookingRepository.findAllByBookerIdAndStatus(Mockito.anyLong(), Mockito.any(), Mockito.any()))
-                .thenReturn(getBookingPage(bookingNotApproved));
+    void getByBooker_whenBookerFutureState() {
+        Booking booking = BookingMapper.toBooking(bookingDtoCreate, item, user);
+        when(userRepository.findById(anyLong())).thenReturn(Optional.ofNullable(user));
+        when(bookingRepository.findByBookerFuture(anyLong(), any(), any(), any())).thenReturn(Collections.singletonList(booking));
 
-        assertEquals(bookingService.getBookingsOneBooker(bookerId, "REJECTED", 0, 10),
-                List.of(responseBookingNotApprovedDto));
+        List<BookingDtoFullResponse> resp = bookingService.getBookings(user.getId(), "FUTURE", PageRequest.ofSize(1));
+        assertFalse(resp.isEmpty());
+        assertEquals(booking.getItem().getName(), resp.get(0).getItem().getName());
+        verify(bookingRepository, times(1)).findByBookerFuture(anyLong(), any(), any(), any());
     }
 
     @Test
-    void getBookingsOneOwnerTest() {
-        Mockito.when(userRepository.findById(Mockito.anyLong()))
-                .thenReturn(Optional.ofNullable(owner));
-        Mockito.when(itemRepository.existsAllByOwnerId(Mockito.anyLong()))
-                .thenReturn(true);
-        Mockito.when(bookingRepository.allBookersByOwnerId(Mockito.anyLong(), Mockito.any()))
-                .thenReturn(getBookingPage(bookingApproved));
+    void getByBooker_whenBookerWaitingStatus() {
+        Booking booking = BookingMapper.toBooking(bookingDtoCreate, item, user);
+        when(userRepository.findById(anyLong())).thenReturn(Optional.ofNullable(user));
+        when(bookingRepository.findByBookerAndStatus(anyLong(), any(), any(), any())).thenReturn(Collections.singletonList(booking));
 
-        assertEquals(bookingService.getBookingsOneOwner(bookerId, "ALL", 0, 10),
-                List.of(responseBookingApprovedDto));
+        List<BookingDtoFullResponse> resp = bookingService.getBookings(user.getId(), "WAITING", PageRequest.ofSize(1));
+        assertFalse(resp.isEmpty());
+        assertEquals(booking.getItem().getName(), resp.get(0).getItem().getName());
+        verify(bookingRepository, times(1)).findByBookerAndStatus(anyLong(), any(), any(), any());
     }
 
     @Test
-    void getBookingsOneOwnerStateCurrentTest() {
-        LocalDateTime currentBookingStart = LocalDateTime.of(2023, 9, 1, 12, 0);
-        LocalDateTime currentBookingEnd = LocalDateTime.of(2023, 9, 30, 12, 0);
-        bookingApproved.setStart(currentBookingStart);
-        bookingApproved.setEnd(currentBookingEnd);
-        responseBookingApprovedDto.setStart(currentBookingStart);
-        responseBookingApprovedDto.setEnd(currentBookingEnd);
+    void getByBooker_whenBookerRejectedStatus() {
+        Booking booking = BookingMapper.toBooking(bookingDtoCreate, item, user);
+        when(userRepository.findById(anyLong())).thenReturn(Optional.ofNullable(user));
+        when(bookingRepository.findByBookerAndStatus(anyLong(), any(), any(), any())).thenReturn(Collections.singletonList(booking));
 
-        Mockito.when(userRepository.findById(Mockito.anyLong()))
-                .thenReturn(Optional.ofNullable(owner));
-        Mockito.when(itemRepository.existsAllByOwnerId(Mockito.anyLong()))
-                .thenReturn(true);
-        Mockito.when(bookingRepository.currentBookersByOwnerId(Mockito.anyLong(), Mockito.any(), Mockito.any()))
-                .thenReturn(getBookingPage(bookingApproved));
-
-        assertEquals(bookingService.getBookingsOneOwner(bookerId, "CURRENT", 0, 10),
-                List.of(responseBookingApprovedDto));
+        List<BookingDtoFullResponse> resp = bookingService.getBookings(user.getId(), "REJECTED", PageRequest.ofSize(1));
+        assertFalse(resp.isEmpty());
+        assertEquals(booking.getItem().getName(), resp.get(0).getItem().getName());
+        verify(bookingRepository, times(1)).findByBookerAndStatus(anyLong(), any(), any(), any());
     }
 
     @Test
-    void getBookingsOneOwnerStatePastTest() {
-        LocalDateTime currentBookingStart = LocalDateTime.of(2023, 8, 1, 12, 0);
-        LocalDateTime currentBookingEnd = LocalDateTime.of(2023, 8, 31, 12, 0);
-        bookingApproved.setStart(currentBookingStart);
-        bookingApproved.setEnd(currentBookingEnd);
-        responseBookingApprovedDto.setStart(currentBookingStart);
-        responseBookingApprovedDto.setEnd(currentBookingEnd);
+    void getByOwner_whenBookerCurrentState() {
+        Booking booking = BookingMapper.toBooking(bookingDtoCreate, item, user);
+        when(userRepository.findById(anyLong())).thenReturn(Optional.ofNullable(user));
+        when(bookingRepository.findByItemOwnerCurrent(anyLong(), any(), any(), any())).thenReturn(Collections.singletonList(booking));
 
-        Mockito.when(userRepository.findById(Mockito.anyLong()))
-                .thenReturn(Optional.ofNullable(owner));
-        Mockito.when(itemRepository.existsAllByOwnerId(Mockito.anyLong()))
-                .thenReturn(true);
-        Mockito.when(bookingRepository.pastBookersByOwnerId(Mockito.anyLong(), Mockito.any(), Mockito.any()))
-                .thenReturn(getBookingPage(bookingApproved));
-
-        assertEquals(bookingService.getBookingsOneOwner(bookerId, "PAST", 0, 10),
-                List.of(responseBookingApprovedDto));
+        List<BookingDtoFullResponse> resp = bookingService.getBookingFromOwner(user.getId(), "CURRENT", PageRequest.ofSize(1));
+        assertFalse(resp.isEmpty());
+        assertEquals(booking.getItem().getName(), resp.get(0).getItem().getName());
+        verify(bookingRepository, times(1)).findByItemOwnerCurrent(anyLong(), any(), any(), any());
     }
 
     @Test
-    void getBookingsOneOwnerStateFutureTest() {
-        LocalDateTime currentBookingStart = LocalDateTime.of(2023, 10, 1, 12, 0);
-        LocalDateTime currentBookingEnd = LocalDateTime.of(2023, 10, 31, 12, 0);
-        bookingApproved.setStart(currentBookingStart);
-        bookingApproved.setEnd(currentBookingEnd);
-        responseBookingApprovedDto.setStart(currentBookingStart);
-        responseBookingApprovedDto.setEnd(currentBookingEnd);
+    void getByOwner_whenBookerPastState() {
+        Booking booking = BookingMapper.toBooking(bookingDtoCreate, item, user);
+        when(userRepository.findById(anyLong())).thenReturn(Optional.ofNullable(user));
+        when(bookingRepository.findByItemOwnerPast(anyLong(), any(), any(), any())).thenReturn(Collections.singletonList(booking));
 
-        Mockito.when(userRepository.findById(Mockito.anyLong()))
-                .thenReturn(Optional.ofNullable(owner));
-        Mockito.when(itemRepository.existsAllByOwnerId(Mockito.anyLong()))
-                .thenReturn(true);
-        Mockito.when(bookingRepository.futureBookersByOwnerId(Mockito.anyLong(), Mockito.any(), Mockito.any()))
-                .thenReturn(getBookingPage(bookingApproved));
-
-        assertEquals(bookingService.getBookingsOneOwner(bookerId, "FUTURE", 0, 10),
-                List.of(responseBookingApprovedDto));
+        List<BookingDtoFullResponse> resp = bookingService.getBookingFromOwner(user.getId(), "PAST", PageRequest.ofSize(1));
+        assertFalse(resp.isEmpty());
+        assertEquals(booking.getItem().getName(), resp.get(0).getItem().getName());
+        verify(bookingRepository, times(1)).findByItemOwnerPast(anyLong(), any(), any(), any());
     }
 
     @Test
-    void getBookingsOneOwnerStateWaitingTest() {
-        Mockito.when(userRepository.findById(Mockito.anyLong()))
-                .thenReturn(Optional.ofNullable(owner));
-        Mockito.when(itemRepository.existsAllByOwnerId(Mockito.anyLong()))
-                .thenReturn(true);
-        Mockito.when(bookingRepository.bookersByStatusAndOwnerId(Mockito.anyLong(), Mockito.any(), Mockito.any()))
-                .thenReturn(getBookingPage(booking));
+    void getByOwner_whenBookerFutureState() {
+        Booking booking = BookingMapper.toBooking(bookingDtoCreate, item, user);
+        when(userRepository.findById(anyLong())).thenReturn(Optional.ofNullable(user));
+        when(bookingRepository.findByItemOwnerFuture(anyLong(), any(), any(), any())).thenReturn(Collections.singletonList(booking));
 
-        assertEquals(bookingService.getBookingsOneOwner(bookerId, "WAITING", 0, 10),
-                List.of(responseBookingDto));
+        List<BookingDtoFullResponse> resp = bookingService.getBookingFromOwner(user.getId(), "FUTURE", PageRequest.ofSize(1));
+        assertFalse(resp.isEmpty());
+        assertEquals(booking.getItem().getName(), resp.get(0).getItem().getName());
+        verify(bookingRepository, times(1)).findByItemOwnerFuture(anyLong(), any(), any(), any());
     }
 
     @Test
-    void getBookingsOneOwnerStateRejectedTest() {
-        Mockito.when(userRepository.findById(Mockito.anyLong()))
-                .thenReturn(Optional.ofNullable(owner));
-        Mockito.when(itemRepository.existsAllByOwnerId(Mockito.anyLong()))
-                .thenReturn(true);
-        Mockito.when(bookingRepository.bookersByStatusAndOwnerId(Mockito.anyLong(), Mockito.any(), Mockito.any()))
-                .thenReturn(getBookingPage(bookingNotApproved));
+    void getByOwner_whenBookerWaitingStatus() {
+        Booking booking = BookingMapper.toBooking(bookingDtoCreate, item, user);
+        when(userRepository.findById(anyLong())).thenReturn(Optional.ofNullable(user));
+        when(bookingRepository.findByItemOwnerAndStatus(anyLong(), any(), any(), any())).thenReturn(Collections.singletonList(booking));
 
-        assertEquals(bookingService.getBookingsOneOwner(bookerId, "REJECTED", 0, 10),
-                List.of(responseBookingNotApprovedDto));
+        List<BookingDtoFullResponse> resp = bookingService.getBookingFromOwner(user.getId(), "WAITING", PageRequest.ofSize(1));
+        assertFalse(resp.isEmpty());
+        assertEquals(booking.getItem().getName(), resp.get(0).getItem().getName());
+        verify(bookingRepository, times(1)).findByItemOwnerAndStatus(anyLong(), any(), any(), any());
+    }
+
+    @Test
+    void getByOwner_whenBookerRejectedStatus() {
+        Booking booking = BookingMapper.toBooking(bookingDtoCreate, item, user);
+        when(userRepository.findById(anyLong())).thenReturn(Optional.ofNullable(user));
+        when(bookingRepository.findByItemOwnerAndStatus(anyLong(), any(), any(), any())).thenReturn(Collections.singletonList(booking));
+
+        List<BookingDtoFullResponse> resp = bookingService.getBookingFromOwner(user.getId(), "REJECTED", PageRequest.ofSize(1));
+        assertFalse(resp.isEmpty());
+        assertEquals(booking.getItem().getName(), resp.get(0).getItem().getName());
+        verify(bookingRepository, times(1)).findByItemOwnerAndStatus(anyLong(), any(), any(), any());
+    }
+
+    @Test
+    void getByOwner_whenBookerNotFound() {
+        when(userRepository.findById(anyLong())).thenReturn(Optional.empty());
+
+        NotFoundException ex = assertThrows(NotFoundException.class,
+                () -> bookingService.getBookingFromOwner(user.getId(), "ALL", PageRequest.ofSize(1)));
+        assertEquals("User with id = 1 not found", ex.getMessage());
+    }
+
+    @Test
+    void getByOwner_whenUnsupportedStatus() {
+        BadRequestException ex = assertThrows(BadRequestException.class,
+                () -> bookingService.getBookingFromOwner(user.getId(), "unsupported", PageRequest.ofSize(1)));
+        assertEquals("Unknown state: unsupported", ex.getMessage());
+    }
+
+    @Test
+    void create_whenAllIsOk_thenBookingSaved() {
+        Booking booking = BookingMapper.toBooking(bookingDtoCreate, item, user);
+        BookingMapper.toBookingDtoResponse(booking);
+        BookingDtoFullResponse bDto = BookingMapper.toBookingRS(booking);
+        when(itemRepository.findById(anyLong())).thenReturn(Optional.ofNullable(item));
+        when(userRepository.findById(anyLong())).thenReturn(Optional.ofNullable(user2));
+        when(bookingRepository.save(any())).thenReturn(booking);
+        bookingService.create(2L, bookingDtoCreate);
+        assertEquals(bDto.getId(), bookingDtoCreate.getId());
+        verify(bookingRepository).save(any());
     }
 }

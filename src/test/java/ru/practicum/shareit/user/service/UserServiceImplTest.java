@@ -4,154 +4,117 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import ru.practicum.shareit.exception.model.NotFoundException;
-import ru.practicum.shareit.exception.model.ValidationException;
-import ru.practicum.shareit.user.dto.UserDtoRequest;
-import ru.practicum.shareit.user.dto.UserDtoResponse;
 import ru.practicum.shareit.user.model.User;
+import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.repository.UserRepository;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Collections;
 import java.util.Optional;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static ru.practicum.shareit.resource.UserData.*;
 
 @ExtendWith(MockitoExtension.class)
-public class UserServiceImplTest {
+class UserServiceImplTest {
     @Mock
-    private UserRepository userRepository;
+    UserRepository userRepository;
     @InjectMocks
-    private UserServiceImpl userService;
-
-    private final long userId = 10L;
-    private final String userName = "userUser";
-    private final String userMail = "user@mail.com";
-    private final UserDtoRequest requestUserDto = UserDtoRequest.builder().name(userName).email(userMail).build();
-    private final User user = User.builder().id(userId).name(userName).email(userMail).build();
-    private final UserDtoResponse responseUserDto = UserDtoResponse.builder().id(userId).name(userName)
-            .email(userMail).build();
-
-    private final UserDtoRequest requestDuplicateUserDto = UserDtoRequest.builder().name(userName).email(userMail).build();
-
-    private final String newUserName = "newUser";
-    private final String newUserMail = "newUser@mail.com";
-    private final UserDtoRequest newDataUserDto = UserDtoRequest.builder().name(newUserName).email(newUserMail).build();
-    private final User newDataUser = User.builder().id(userId).name(newUserName).email(newUserMail).build();
-    private final UserDtoResponse newResponseUserDto = UserDtoResponse.builder().id(userId).name(newUserName)
-            .email(newUserMail).build();
-
-    private final long notExistingUserId = 9999L;
+    UserServiceImpl userService;
 
     @Test
-    void testCreateUser() {
-        Mockito.when(userRepository.save(Mockito.any()))
-                .thenReturn(user);
-
-        assertEquals(userService.create(requestUserDto), responseUserDto);
+    void getAll_ReturnEmptyList() {
+        when(userRepository.findAll())
+                .thenReturn(Collections.emptyList());
+        assertTrue(userService.get().isEmpty());
     }
 
     @Test
-    void testCreateUserWithDuplicateEmail() {
-        Mockito.when(userRepository.save(Mockito.any()))
-                .thenThrow(new ValidationException("Пользователь с такой же эл.почтой уже существует! " +
-                        "Выполнить операцию невозможно."));
-        Exception exception = assertThrows(ValidationException.class, () -> userService.create(requestDuplicateUserDto));
-
-        assertEquals("Пользователь с такой же эл.почтой уже существует! Выполнить операцию невозможно.",
-                exception.getMessage());
+    void getById_Success() {
+        var expectedUser = getUserDto();
+        when(userRepository.findById(0L))
+                .thenReturn(Optional.of(getUser()));
+        var actualUser = userService.get(0L);
+        assertEquals(expectedUser, actualUser);
     }
 
     @Test
-    void testGetUserById() {
-        Mockito.when(userRepository.findById(Mockito.anyLong()))
-                .thenReturn(Optional.ofNullable(user));
-
-        assertEquals(userService.getById(userId), responseUserDto);
+    void getById_UserNotFound() {
+        when(userRepository.findById(0L))
+                .thenReturn(Optional.empty());
+        var ex = assertThrows(NotFoundException.class,
+                () -> userService.get(0L));
+        assertEquals("User with id = 0 not found", ex.getMessage());
     }
 
     @Test
-    void testGetUserByNotExistingId() {
-        Mockito.when(userRepository.findById(Mockito.any()))
-                .thenThrow(new NotFoundException("Пользователь с id = 9999 отсутствует в БД. " +
-                        "Выполнить операцию невозможно!"));
-        Exception exception = assertThrows(NotFoundException.class, () -> userService.getById(notExistingUserId));
-
-        assertEquals("Пользователь с id = 9999 отсутствует в БД. Выполнить операцию невозможно!",
-                exception.getMessage());
+    void create_With_Success() {
+        var expectedUserDto = getUserDto();
+        var user = getUser();
+        when(userRepository.save(any())).thenReturn(user);
+        var actualUserDto = userService.create(user);
+        assertEquals(expectedUserDto, actualUserDto);
+        verify(userRepository).save(any());
     }
 
     @Test
-    void testGetAllUsers() {
-        Mockito.when(userRepository.findAll())
-                .thenReturn(List.of(user));
-
-        assertEquals(userService.getAll(), List.of(responseUserDto));
+    void update_NotFoundException() {
+        when(userRepository.findById(0L))
+                .thenReturn(Optional.empty());
+        var ex = assertThrows(NotFoundException.class,
+                () -> userService.update(0L, getUpdateUser()));
+        assertEquals("User with id = 0 not found", ex.getMessage());
     }
 
     @Test
-    void testGetAllUsersEmpty() {
-        Mockito.when(userRepository.findAll())
-                .thenReturn(new ArrayList<>());
+    void update_with_only_new_email() {
+        User userBefore = User.builder()
+                .id(1L)
+                .email("email@mail,ru")
+                .name("name")
+                .build();
 
-        assertEquals(userService.getAll(), new ArrayList<>());
+        User userAfter = User.builder()
+                .email("newemail@mail.ru")
+                .build();
+
+        when(userRepository.findById(anyLong()))
+                .thenReturn(Optional.ofNullable(userBefore));
+
+        UserDto actual = userService.update(1L, userAfter);
+
+        assertEquals(actual.getEmail(), userAfter.getEmail());
     }
 
     @Test
-    void testUpdateUser() {
-        Mockito.when(userRepository.findById(Mockito.anyLong()))
-                .thenReturn(Optional.ofNullable(user));
-        Mockito.when(userRepository.save(Mockito.any()))
-                .thenReturn(newDataUser);
+    void update_with_only_new_name() {
+        User userBefore = User.builder()
+                .id(1L)
+                .email("email@mail,ru")
+                .name("name")
+                .build();
 
-        assertEquals(userService.update(userId, newDataUserDto), newResponseUserDto);
+        User userAfter = User.builder()
+                .name("newemail@mail.ru")
+                .build();
+
+        when(userRepository.findById(anyLong()))
+                .thenReturn(Optional.ofNullable(userBefore));
+
+        UserDto actual = userService.update(1L, userAfter);
+
+        assertEquals(actual.getName(), userAfter.getName());
     }
 
     @Test
-    void testUpdateNotExistUser() {
-        Mockito.when(userRepository.findById(Mockito.anyLong()))
-                .thenThrow(new NotFoundException("Пользователь с id = 9999 отсутствует в БД. " +
-                        "Выполнить операцию невозможно!"));
-        Exception exception = assertThrows(NotFoundException.class, () -> userService.update(notExistingUserId,
-                newDataUserDto));
-
-        assertEquals("Пользователь с id = 9999 отсутствует в БД. Выполнить операцию невозможно!",
-                exception.getMessage());
-    }
-
-    @Test
-    void testUpdateUserWithDuplicateEmail() {
-        Mockito.when(userRepository.findById(Mockito.anyLong()))
-                .thenReturn(Optional.ofNullable(user));
-        Mockito.when(userRepository.save(Mockito.any()))
-                .thenThrow(new ValidationException("Пользователь с такой же эл.почтой уже существует! " +
-                        "Выполнить операцию невозможно."));
-        Exception exception = assertThrows(ValidationException.class,
-                () -> userService.update(userId, requestDuplicateUserDto));
-
-        assertEquals("Пользователь с такой же эл.почтой уже существует! Выполнить операцию невозможно.",
-                exception.getMessage());
-    }
-
-    @Test
-    void testDeleteUser() {
-        Mockito.when(userRepository.findById(Mockito.anyLong()))
-                .thenReturn(Optional.ofNullable(user));
-        userService.delete(userId);
-
-        Mockito.verify(userRepository, Mockito.times(1)).delete(user);
-    }
-
-    @Test
-    void testDeleteNotExistUser() {
-        Mockito.when(userRepository.findById(Mockito.anyLong()))
-                .thenThrow(new NotFoundException("Пользователь с id = 9999 отсутствует в БД. " +
-                        "Выполнить операцию невозможно!"));
-        Exception exception = assertThrows(NotFoundException.class, () -> userService.delete(notExistingUserId));
-
-        assertEquals("Пользователь с id = 9999 отсутствует в БД. Выполнить операцию невозможно!",
-                exception.getMessage());
+    void delete_verifyInvokingMethod() {
+        when(userRepository.findById(1L)).thenReturn(Optional.of(getUser()));
+        userService.delete(1L);
+        verify(userRepository).delete(any());
     }
 }

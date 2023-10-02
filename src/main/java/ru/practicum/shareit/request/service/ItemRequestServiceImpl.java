@@ -2,146 +2,85 @@ package ru.practicum.shareit.request.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
-import ru.practicum.shareit.exception.model.*;
-import ru.practicum.shareit.item.dto.*;
+import ru.practicum.shareit.exception.model.NotFoundException;
 import ru.practicum.shareit.item.mapper.ItemMapper;
-import ru.practicum.shareit.item.model.Item;
+import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.repository.ItemRepository;
-import ru.practicum.shareit.request.dto.*;
-import ru.practicum.shareit.request.mapper.ItemRequestMapper;
 import ru.practicum.shareit.request.model.ItemRequest;
+import ru.practicum.shareit.request.mapper.ItemRequestMapper;
+import ru.practicum.shareit.request.dto.ItemRequestDtoRQ;
+import ru.practicum.shareit.request.dto.ItemRequestDtoRS;
 import ru.practicum.shareit.request.repository.ItemRequestRepository;
-import ru.practicum.shareit.user.mapper.UserMapper;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.repository.UserRepository;
 
-import java.util.ArrayList;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.time.LocalDateTime;
-
-import static java.util.stream.Collectors.groupingBy;
-import static java.util.stream.Collectors.toList;
-
+import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
+@RequiredArgsConstructor
 public class ItemRequestServiceImpl implements ItemRequestService {
-    private final ItemRequestRepository itemRequestRepository;
     private final ItemRepository itemRepository;
+    private final ItemRequestRepository requestRepository;
     private final UserRepository userRepository;
 
-    private User getUserById(long id) {
-        return userRepository.findById(id).orElseThrow(() -> new NotFoundException(String.format("Пользователь " +
-                "с id = %s отсутствует в БД. Выполнить операцию невозможно!", id)));
-    }
-
-    private ItemRequest getItemRequestById(long id) {
-        return itemRequestRepository.findById(id).orElseThrow(() -> new NotFoundException(String.format("Запрос " +
-                "с id = %s отсутствует в БД. Выполнить операцию невозможно!", id)));
+    @Override
+    public ItemRequestDtoRS create(long userId, ItemRequestDtoRQ itemRequestDtoRQ) {
+        User user = userRepository.findById(userId).orElseThrow(() -> new NotFoundException("User not found"));
+        itemRequestDtoRQ.setCreated(LocalDateTime.now());
+        ItemRequest itemRequest = requestRepository.save(ItemRequestMapper.toItemRequest(itemRequestDtoRQ, user));
+        log.info("Request created");
+        return ItemRequestMapper.toItemRequestDtoRS(itemRequest);
     }
 
     @Override
-    public ItemRequestDtoResponse create(ItemRequestDtoRequest requestDto, long userId) {
-        User requestor = getUserById(userId);
-        LocalDateTime currentMoment = LocalDateTime.now();
-
-        ItemRequest dataRequest = ItemRequestMapper.toItemRequest(requestDto, requestor, currentMoment);
-        ItemRequest request = itemRequestRepository.save(dataRequest);
-        log.info("Данные запроса необходимой вещи добавлены в БД: {}.", request);
-
-        ItemRequestDtoResponse responseItemRequestDto = ItemRequestMapper.toResponseItemRequestDto(request,
-                UserMapper.toResponseUserDto(requestor));
-        log.info("Новая вещь создана: {}.", responseItemRequestDto);
-        return responseItemRequestDto;
+    public List<ItemRequestDtoRS> getInfo(long userId) {
+        userRepository.findById(userId).orElseThrow(() -> new NotFoundException("User not found"));
+        List<ItemRequestDtoRS> responseList = requestRepository.findAllByRequesterId(userId).stream()
+                .map(ItemRequestMapper::toItemRequestDtoRS)
+                .collect(Collectors.toList());
+        setItemsToRequests(responseList);
+        return responseList;
     }
 
     @Override
-    public ItemRequestDtoFullResponse getById(long requestId, long userId) {
-        getUserById(userId);
-        ItemRequest itemRequest = getItemRequestById(requestId);
-        log.info("Запрос найден в БД: {}.", itemRequest);
-
-        List<Item> oneRequestItems =  itemRepository.findByItemRequestId(requestId);
-        ItemRequestDtoFullResponse requestDto = ItemRequestMapper.toFullResponseItemRequestDto(itemRequest);
-        setItemList(requestDto, oneRequestItems);
-        log.info("Все данные запроса вещи получены: {}.", requestDto);
-        return requestDto;
+    public ItemRequestDtoRS getInfo(long userId, long requestId) {
+        userRepository.findById(userId).orElseThrow(() -> new NotFoundException("User not found"));
+        ItemRequest itemRequest = requestRepository.findById(requestId).orElseThrow(() ->
+                new NotFoundException("Request not found"));
+        List<ItemDto> items = itemRepository.findByItemRequestId(requestId).stream()
+                .map(ItemMapper::toItemDto)
+                .collect(Collectors.toList());
+        ItemRequestDtoRS itemRequestDtoResponse = ItemRequestMapper.toItemRequestDtoRS(itemRequest);
+        itemRequestDtoResponse.setItems(items);
+        return itemRequestDtoResponse;
     }
 
     @Override
-    public List<ItemRequestDtoFullResponse> getOwnItemRequests(long requestorId) {
-        getUserById(requestorId);
-
-        if (!itemRequestRepository.existsAllByRequestorId(requestorId)) {
-            log.info("У пользователя с id = {} отсутствуют запросы на вещи.", requestorId);
-            return new ArrayList<>();
-        } else {
-            List<ItemRequest> requestList = itemRequestRepository.findAllByRequestorIdOrderByCreatedDesc(requestorId);
-            List<Long> requestIdList = requestList.stream().map(ItemRequest::getId).collect(toList());
-            Map<ItemRequest, List<Item>> allItems = itemRepository.findAllByItemRequestIdIn(requestIdList)
-                    .stream()
-                    .collect(groupingBy(Item::getItemRequest, toList()));
-            log.info("Из БД получены запросы пользователя и вещи, предложенные в соответствии с ними другими " +
-                    "пользователями.");
-
-            log.info("Формируем итоговый список запросов.");
-            return requestList
-                    .stream()
-                    .map((ItemRequest request) -> {
-                        ItemRequestDtoFullResponse requestDto = ItemRequestMapper.toFullResponseItemRequestDto(request);
-                        return setItemList(requestDto, allItems.get(request));
-                    })
-                    .collect(toList());
-        }
+    public List<ItemRequestDtoRS> getRequests(long userId, int from, int size) {
+        int page = from / size;
+        PageRequest pageRequest = PageRequest.of(page, size);
+        List<ItemRequestDtoRS> responseList = requestRepository.findAllPageable(userId, pageRequest).stream()
+                .map(ItemRequestMapper::toItemRequestDtoRS)
+                .collect(Collectors.toList());
+        setItemsToRequests(responseList);
+        return responseList;
     }
 
-    public List<ItemRequestDtoFullResponse> getAll(long userId, int from, int size) {
-        getUserById(userId);
-
-        Pageable pageable = PageRequest.of(from / size, size, Sort.by(Sort.Direction.DESC, "created"));
-        Page<ItemRequest> requestList = itemRequestRepository.findAllByRequestorIdNot(userId, pageable);
-        log.info("Из БД получены все запросы пользователей.");
-        if (!requestList.hasContent()) {
-            log.info("Запросы на вещи отсутствуют.");
-            return new ArrayList<>();
-        } else {
-            List<Item> items = itemRepository.findByItemRequestIdIsNotNull();
-            Map<ItemRequest, List<Item>> allItems = items
-                    .stream()
-                    .collect(groupingBy(Item::getItemRequest, toList()));
-            log.info("Из БД получены запросы пользователей и вещи, предложенные в соответствии с ними другими " +
-                    "пользователями.");
-
-            log.info("Формируем итоговый список запросов.");
-            return requestList
-                    .stream()
-                    .map((ItemRequest request) -> {
-                        ItemRequestDtoFullResponse requestDto = ItemRequestMapper.toFullResponseItemRequestDto(request);
-                        return setItemList(requestDto, allItems.get(request));
-                    })
-                    .collect(toList());
-        }
+    private void setItemsToRequests(List<ItemRequestDtoRS> itemRequestDtoRS) {
+        Map<Long, ItemRequestDtoRS> requests = itemRequestDtoRS.stream()
+                .collect(Collectors.toMap(ItemRequestDtoRS::getId, x -> x, (a, b) -> b));
+        List<Long> ids = requests.values().stream()
+                .map(ItemRequestDtoRS::getId)
+                .collect(Collectors.toList());
+        List<ItemDto> itemDtos = itemRepository.searchByRequestsId(ids).stream()
+                .map(ItemMapper::toItemDto)
+                .collect(Collectors.toList());
+        itemDtos.forEach(itemDto -> requests.get(itemDto.getRequestId()).getItems().add(itemDto));
     }
-
-    private ItemRequestDtoFullResponse setItemList(ItemRequestDtoFullResponse requestDto, List<Item> oneRequestItems) {
-        List<ItemDtoResponse> items;
-
-        if (oneRequestItems != null) {
-            items = oneRequestItems.stream()
-                    .map(ItemMapper::toResponseItemDto)
-                    .collect(toList());
-        } else {
-            items = new ArrayList<>();
-        }
-        requestDto.setItems(items);
-        return requestDto;
-    }
-
 }

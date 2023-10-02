@@ -2,67 +2,71 @@ package ru.practicum.shareit.booking.controller;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.validation.annotation.Validated;
-import ru.practicum.shareit.booking.dto.*;
+import org.springframework.web.bind.annotation.*;
+import ru.practicum.shareit.booking.dto.BookingDtoCreate;
+import ru.practicum.shareit.booking.dto.BookingDtoFullResponse;
 import ru.practicum.shareit.booking.service.BookingService;
-import javax.validation.Valid;
-import javax.validation.constraints.Min;
-import java.util.List;
-import static ru.practicum.shareit.utils.Constants.X_SHARER_USER_ID;
+import ru.practicum.shareit.validators.Create;
 
-@RestController
-@RequestMapping(path = "/bookings")
-@RequiredArgsConstructor
-@Validated
+import javax.validation.constraints.Positive;
+import javax.validation.constraints.PositiveOrZero;
+import java.util.List;
+
 @Slf4j
+@RestController
+@Validated
+@RequiredArgsConstructor
+@RequestMapping("/bookings")
 public class BookingController {
     private final BookingService bookingService;
+    public static final String X_SHARER_USER_ID = "X-Sharer-User-Id";
 
     @PostMapping
-    public BookingDtoResponse createBooking(@RequestHeader(X_SHARER_USER_ID) long userId,
-                                            @RequestBody @Valid BookingDtoRequest booking) {
-        log.info("");
-        log.info("Добавление от пользователя с id = {} нового запроса на бронирование: {}", userId, booking);
-        return bookingService.create(booking, userId);
+    public BookingDtoFullResponse create(
+            @RequestHeader(X_SHARER_USER_ID) long userId,
+            @Validated(Create.class) @RequestBody BookingDtoCreate bookingDtoCreate) {
+        log.info("Received a request to add a booking");
+        return bookingService.create(userId, bookingDtoCreate);
     }
-
 
     @PatchMapping("/{bookingId}")
-    public BookingDtoResponse approveBooking(@RequestHeader(X_SHARER_USER_ID) long userId,
-                                             @PathVariable long bookingId,
-                                             @RequestParam boolean approved) {
-        log.info("");
-        log.info("Обновление статуса запроса на бронирование с id = {}", bookingId);
-        return bookingService.approve(bookingId, approved, userId);
+    public BookingDtoFullResponse update(
+            @PathVariable long bookingId,
+            @RequestParam boolean approved,
+            @RequestHeader(X_SHARER_USER_ID) long ownerId) {
+        log.info("Received a request to update the booking");
+        return bookingService.update(bookingId, ownerId, approved);
     }
 
-
     @GetMapping("/{bookingId}")
-    public BookingDtoResponse getBookingById(@RequestHeader(X_SHARER_USER_ID) long userId,
-                                             @PathVariable long bookingId) {
-        log.info("");
-        log.info("Получение данных бронирования с id = {}", bookingId);
-        return bookingService.getById(bookingId, userId);
+    public BookingDtoFullResponse getBooking(
+            @PathVariable long bookingId,
+            @RequestHeader(X_SHARER_USER_ID) long ownerId) {
+        log.info("Received a request to get booking with id {}", bookingId);
+        return bookingService.get(bookingId, ownerId);
     }
 
     @GetMapping
-    public List<BookingDtoResponse> getBookingsOneUser(@RequestHeader(X_SHARER_USER_ID) long userId,
-                                                       @RequestParam(defaultValue = "ALL") String state,
-                                                       @RequestParam(defaultValue = "0") @Min(0) int from,
-                                                       @RequestParam(defaultValue = "10") @Min(1) int size) {
-        log.info("");
-        log.info("Поиск и сортировка бронирований, запрошенных пользователем с id = {}", userId);
-        return bookingService.getBookingsOneBooker(userId, state, from, size);
+    public List<BookingDtoFullResponse> getByUser(
+            @RequestParam(defaultValue = "ALL") String state,
+            @RequestHeader(X_SHARER_USER_ID) long ownerId,
+            @PositiveOrZero @RequestParam(defaultValue = "0") int from,
+            @Positive @RequestParam(defaultValue = "20") int size) {
+        log.info("Received a request to get bookings with state {}", state);
+        PageRequest pageRequest = PageRequest.of(from / size, size);
+        return bookingService.getBookings(ownerId, state, pageRequest);
     }
 
     @GetMapping("/owner")
-    public List<BookingDtoResponse> getBookingsOneOwner(@RequestHeader(X_SHARER_USER_ID) long userId,
-                                                        @RequestParam (defaultValue = "ALL") String state,
-                                                        @RequestParam(defaultValue = "0") @Min(0) int from,
-                                                        @RequestParam(defaultValue = "10") @Min(1) int size) {
-        log.info("");
-        log.info("Поиск и сортировка бронирований для вещей, владелец которых пользователь с id = {}", userId);
-        return bookingService.getBookingsOneOwner(userId, state, from, size);
+    public List<BookingDtoFullResponse> getBookingFromOwner(
+            @RequestParam(defaultValue = "ALL") String state,
+            @RequestHeader(X_SHARER_USER_ID) long ownerId,
+            @PositiveOrZero @RequestParam(defaultValue = "0") int from,
+            @Positive @RequestParam(defaultValue = "20") int size) {
+        log.info("Received a request to get bookings with state {}", state);
+        PageRequest pageRequest = PageRequest.of(from / size, size);
+        return bookingService.getBookingFromOwner(ownerId, state, pageRequest);
     }
 }
