@@ -6,12 +6,13 @@ import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
+
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
-@Documented
-@Constraint(validatedBy = EndAfterStartValidator.class)
 @Target(ElementType.TYPE_USE)
 @Retention(RUNTIME)
+@Documented
+@Constraint(validatedBy = EndAfterStartValidator.class)
 public @interface EndAfterStartValidation {
     String message() default "Дата начала бронирования не может быть пустой или быть позже даты его окончания!";
 

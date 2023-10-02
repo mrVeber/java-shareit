@@ -1,20 +1,30 @@
 package ru.practicum.shareit.item.service;
 
-import ru.practicum.shareit.item.dto.*;
+import org.springframework.data.domain.Pageable;
+import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.shareit.item.dto.CommentDto;
+import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.item.dto.ItemDtoBooking;
 
 import java.util.List;
 
+@Transactional(readOnly = true)
 public interface ItemService {
-    ItemDtoOut getItemById(long itemId, long userId);
+    List<ItemDtoBooking> getUserItems(long userId, Pageable pageable);
 
-    List<ItemDtoOut> getItemsByOwner(long userId);
+    ItemDtoBooking getById(long itemId, long userId);
 
-    List<ItemDtoOut> getItemBySearch(String text);
+    @Transactional
+    ItemDto create(long userId, ItemDto itemDto);
 
-    ItemDtoOut saveNewItem(ItemDtoIn itemDtoIn, long userId);
+    @Transactional
+    ItemDto update(long itemId, ItemDto itemDto, long ownerId);
 
-    ItemDtoOut updateItem(long itemId, ItemDtoIn itemDtoIn, long userId);
+    @Transactional
+    CommentDto createComment(long itemId, CommentDto commentDto, long authorId);
 
-    CommentDtoOut saveNewComment(long itemId, CommentDtoIn commentDtoIn, long userId);
+    List<ItemDto> search(String text, Pageable pageable);
 
+    @Transactional
+    void delete(long id);
 }

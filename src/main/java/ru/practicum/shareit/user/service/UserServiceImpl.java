@@ -3,65 +3,58 @@ package ru.practicum.shareit.user.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import ru.practicum.shareit.exception.model.EntityNotFoundException;
-import ru.practicum.shareit.user.dto.UserDto;
-import ru.practicum.shareit.user.mapper.UserMapper;
+import ru.practicum.shareit.exception.model.NotFoundException;
 import ru.practicum.shareit.user.model.User;
+import ru.practicum.shareit.user.mapper.UserMapper;
+import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.repository.UserRepository;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Slf4j
-@Transactional
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
 
-    @Transactional(readOnly = true)
     @Override
-    public List<UserDto> getAllUsers() {
-        log.info("Получение всех пользователей");
-        return userRepository.findAll().stream().map(UserMapper::toUserDto).collect(Collectors.toList());
-    }
-
-    @Transactional(readOnly = true)
-    @Override
-    public UserDto getUserById(long userId) {
-        log.info("Получение пользователя по идентификатору {}", userId);
-        User user = userRepository.findById(userId).orElseThrow(() ->
-                new EntityNotFoundException(String.format("Объект класса %s не найден", User.class)));
-        return UserMapper.toUserDto(user);
+    public List<UserDto> get() {
+        return userRepository.findAll().stream()
+                .map(UserMapper::toUserDto)
+                .collect(Collectors.toList());
     }
 
     @Override
-    public UserDto saveNewUser(UserDto userDto) {
-        log.info("Создание нового пользователя {}", userDto.getName());
-        User user = userRepository.save(UserMapper.toUser(userDto));
-        return UserMapper.toUserDto(user);
+    public UserDto get(long id) {
+        return UserMapper.toUserDto(userRepository.findById(id).orElseThrow(()
+                -> new NotFoundException("User with id = " + id + " not found")));
     }
 
     @Override
-    public UserDto updateUser(long userId, UserDto userDto) {
-        log.info("Обновление существующего пользователя {}", userDto.getName());
-        User oldUser = userRepository.findById(userId).orElseThrow(() ->
-                new EntityNotFoundException(String.format("Объект класса %s не найден", User.class)));
-        String name = userDto.getName();
-        String email = userDto.getEmail();
-        if (name != null && !name.isBlank()) {
-            oldUser.setName(name);
+    public UserDto create(User user) {
+        return UserMapper.toUserDto(userRepository.save(user));
+    }
+
+    @Override
+    public UserDto update(long id, User user) {
+        User userInMem = userRepository.findById(id).orElseThrow(()
+                -> new NotFoundException("User with id = " + id + " not found"));
+
+        if (!Objects.isNull(user.getEmail())
+                && !user.getEmail().isBlank()) {
+            userInMem.setEmail(user.getEmail());
         }
-        if (email != null && !email.isBlank()) {
-            oldUser.setEmail(email);
+        if (!Objects.isNull(user.getName()) && !user.getName().isBlank()) {
+            userInMem.setName(user.getName());
         }
-        return UserMapper.toUserDto(oldUser);
+
+        return UserMapper.toUserDto(userInMem);
     }
 
     @Override
-    public void deleteUser(long id) {
-        log.info("Удаление пользователя по идентификатору {}", id);
-        userRepository.deleteById(id);
+    public void delete(long id) {
+        userRepository.findById(id).ifPresent(userRepository::delete);
     }
 }

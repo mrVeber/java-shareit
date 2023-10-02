@@ -1,14 +1,12 @@
 package ru.practicum.shareit.exception;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.http.HttpStatus;
-import ru.practicum.shareit.exception.model.*;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import ru.practicum.shareit.exception.model.*;
 
 import javax.validation.ConstraintViolationException;
 
@@ -16,47 +14,47 @@ import javax.validation.ConstraintViolationException;
 @RestControllerAdvice
 public class ErrorHandler {
 
-    @ExceptionHandler({MethodArgumentNotValidException.class, ItemIsNotAvailableException.class,
-            WrongDatesException.class, BookingCanBeApprovedOnlyByOwnerException.class,
-            UnsupportedStatusException.class, NotBookerException.class})
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ErrorResponse validateException(RuntimeException e) {
-        log.info(e.getMessage());
-        return new ErrorResponse(e.getMessage());
-    }
-
     @ExceptionHandler
-    public ResponseEntity<String> validateException(final ConstraintViolationException e) {
-        log.info(e.getMessage());
-        return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
-    }
-
-    @ExceptionHandler({EntityNotFoundException.class, IllegalVewAndUpdateException.class,
-            NotAvailableToBookOwnItemsException.class})
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ErrorResponse entityNotFoundException(RuntimeException e) {
+    public ErrorResponse handleNotFoundException(final NotFoundException e) {
         log.info(e.getMessage());
         return new ErrorResponse(e.getMessage());
     }
 
     @ExceptionHandler
     @ResponseStatus(HttpStatus.CONFLICT)
-    public ErrorResponse userNotUniqueEmailException(DataIntegrityViolationException e) {
+    public ErrorResponse handleIncorrectParameterException(final ConflictException e) {
         log.info(e.getMessage());
         return new ErrorResponse(e.getMessage());
     }
 
     @ExceptionHandler
-    @ResponseStatus(HttpStatus.FORBIDDEN)
-    public ErrorResponse notOwnerException(final NotOwnerException e) {
-        log.info(e.getMessage());
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleMethodArgumentNotValidException(final MethodArgumentNotValidException e) {
+        log.error(e.getMessage());
+        return new ErrorResponse(e.getMessage());
+    }
+
+    @ExceptionHandler
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleConstraintViolationException(final ConstraintViolationException e) {
+        log.error(e.getMessage());
+        return new ErrorResponse(e.getMessage());
+    }
+
+    @ExceptionHandler
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleBadRequestException(final BadRequestException e) {
+        log.error(e.getMessage());
         return new ErrorResponse(e.getMessage());
     }
 
     @ExceptionHandler
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorResponse handleThrowable(final Throwable e) {
-        log.error(e.getMessage());
-        return new ErrorResponse("Произошла непредвиденная ошибка.");
+        log.error("Error : {}", e.getMessage());
+        return new ErrorResponse(
+                "Internal server error"
+        );
     }
 }
