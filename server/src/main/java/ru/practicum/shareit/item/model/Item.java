@@ -1,12 +1,10 @@
 package ru.practicum.shareit.item.model;
 
 import lombok.*;
-import org.hibernate.Hibernate;
 import ru.practicum.shareit.request.model.ItemRequest;
 import ru.practicum.shareit.user.model.User;
 
 import javax.persistence.*;
-import java.util.Objects;
 
 @Entity
 @Table(name = "items")
