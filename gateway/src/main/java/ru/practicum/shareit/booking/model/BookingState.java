@@ -1,6 +1,7 @@
 package ru.practicum.shareit.booking.model;
 
 import java.util.Optional;
+
 public enum BookingState {
     ALL,
     CURRENT,

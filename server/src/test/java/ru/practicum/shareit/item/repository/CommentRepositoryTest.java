@@ -1,59 +1,52 @@
-//package ru.practicum.shareit.item.repository;
-//
-//import org.junit.jupiter.api.Test;
-//import org.junit.runner.RunWith;
-//import org.springframework.beans.factory.annotation.Autowired;
-//import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
-//import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-//import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
-//import org.springframework.test.context.junit4.SpringRunner;
-//import ru.practicum.shareit.item.model.Comment;
-//import ru.practicum.shareit.item.model.Item;
-//import ru.practicum.shareit.user.model.User;
-//
-//import java.time.LocalDateTime;
-//import java.util.List;
-//
-//import static org.junit.jupiter.api.Assertions.assertEquals;
-//import static org.junit.jupiter.api.Assertions.assertNotNull;
-//
-//@DataJpaTest
-//@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-//@RunWith(SpringRunner.class)
-//class CommentRepositoryTest {
-//    User user = new User(null, "user", "user@user.ru");
-//    Item item = new Item(
-//            null,
-//            "name1",
-//            "description first",
-//            true,
-//            user,
-//            null);
-//    Comment comment = new Comment(
-//            null,
-//            "something",
-//            item,
-//            user,
-//            LocalDateTime.now());
-//    @Autowired
-//    private TestEntityManager em;
-//    @Autowired
-//    private CommentRepository commentRepository;
-//
-//    @Test
-//    void contextLoads() {
-//        assertNotNull(em);
-//    }
-//
-//    @Test
-//    void findAllComments() {
-//        em.persist(user);
-//        em.persist(item);
-//        em.persist(comment);
-//
-//        List<Comment> comments = commentRepository.findByItemId_IdIn(List.of(item.getId()));
-//
-//        assertEquals(1, comments.size());
-//        assertEquals(comment, comments.get(0));
-//    }
-//}
+package ru.practicum.shareit.item.repository;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.test.annotation.DirtiesContext;
+import ru.practicum.shareit.item.model.Comment;
+import ru.practicum.shareit.item.model.Item;
+import ru.practicum.shareit.item.repository.CommentRepository;
+import ru.practicum.shareit.user.model.User;
+import ru.practicum.shareit.user.repository.UserRepository;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.notNullValue;
+
+@DataJpaTest
+class CommentRepositoryTest {
+    @Autowired
+    private CommentRepository commentRepository;
+    @Autowired
+    private UserRepository userRepository;
+    @Autowired
+    private ItemRepository itemRepository;
+
+
+    private final User user = new User(null, "user", "user@mail.ru");
+    private final Item item = new Item(null, "item", "cool", true, user, null);
+    private final Comment comment = new Comment(null, "abc", item, user,
+            LocalDateTime.of(2023, 7, 1, 12, 12, 12));
+
+    @BeforeEach
+    void setUp() {
+        userRepository.save(user);
+        itemRepository.save(item);
+        commentRepository.save(comment);
+    }
+
+    @Test
+    @DirtiesContext
+    void findAllByItemId() {
+        List<Comment> comments = commentRepository.findAllByItemId(item.getId());
+
+        assertThat(comments.get(0).getId(), notNullValue());
+        assertThat(comments.get(0).getText(), equalTo(comment.getText()));
+        assertThat(comments.size(), equalTo(1));
+    }
+}
