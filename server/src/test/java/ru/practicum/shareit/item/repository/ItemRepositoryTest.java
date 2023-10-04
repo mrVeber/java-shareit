@@ -18,6 +18,7 @@ import static org.hamcrest.Matchers.equalTo;
 
 @DataJpaTest
 class ItemRepositoryTest {
+
     @Autowired
     private ItemRepository itemRepository;
     @Autowired

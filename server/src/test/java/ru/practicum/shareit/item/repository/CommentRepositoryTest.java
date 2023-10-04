@@ -27,7 +27,6 @@ class CommentRepositoryTest {
     @Autowired
     private ItemRepository itemRepository;
 
-
     private final User user = new User(null, "user", "user@mail.ru");
     private final Item item = new Item(null, "item", "cool", true, user, null);
     private final Comment comment = new Comment(null, "abc", item, user,
