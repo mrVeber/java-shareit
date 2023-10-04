@@ -23,7 +23,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(controllers = ItemController.class)
-@RequiredArgsConstructor(onConstructor_ = @Autowired)
 class ItemControllerTest {
     @MockBean
     private ItemServiceImpl itemService;
