@@ -1,22 +1,20 @@
 package ru.practicum.shareit.booking.service;
 
-import ru.practicum.shareit.booking.dto.BookingDtoIn;
-import ru.practicum.shareit.booking.dto.BookingDtoOut;
-import ru.practicum.shareit.booking.model.Booking;
+import org.springframework.data.domain.PageRequest;
+import ru.practicum.shareit.booking.dto.BookingDtoCreate;
+import ru.practicum.shareit.booking.dto.BookingDtoFullResponse;
 
 import java.util.List;
 
 public interface BookingService {
-    BookingDtoOut saveNewBooking(BookingDtoIn bookingDtoIn, long userId);
+    BookingDtoFullResponse create(long userId, BookingDtoCreate bookingDtoCreate);
 
-    BookingDtoOut approve(long bookingId, Boolean isApproved, long userId);
+    BookingDtoFullResponse update(long bookingId, long ownerId, boolean approved);
 
-    BookingDtoOut getBookingById(long bookingId, long userId);
+    BookingDtoFullResponse get(long bookingId, long ownerId);
 
-    List<BookingDtoOut> getAllByBooker(Integer from, Integer size, String state, long bookerId);
+    List<BookingDtoFullResponse> getBookings(long ownerId, String state, PageRequest pageRequest);
 
-    List<BookingDtoOut> getAllByOwner(Integer from, Integer size, String state, long ownerId);
-
-    Booking getById(long bookingId);
+    List<BookingDtoFullResponse> getBookingFromOwner(long ownerId, String state, PageRequest pageRequest);
 
 }

@@ -1,92 +1,128 @@
 package ru.practicum.shareit.request.service;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import ru.practicum.shareit.exception.model.EntityNotFoundException;
+import ru.practicum.shareit.exception.model.NotFoundException;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.repository.ItemRepository;
-import ru.practicum.shareit.item.mapper.ItemMapper;
-import ru.practicum.shareit.request.dto.ItemRequestDtoIn;
-import ru.practicum.shareit.request.dto.ItemRequestDtoOut;
-import ru.practicum.shareit.request.mapper.ItemRequestMapper;
 import ru.practicum.shareit.request.model.ItemRequest;
+import ru.practicum.shareit.request.mapper.ItemRequestMapper;
+import ru.practicum.shareit.request.dto.ItemRequestDtoRQ;
+import ru.practicum.shareit.request.dto.ItemRequestDtoRS;
 import ru.practicum.shareit.request.repository.ItemRequestRepository;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.repository.UserRepository;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
 
 @ExtendWith(MockitoExtension.class)
 class ItemRequestServiceImplTest {
     @Mock
-    private ItemRequestRepository requestRepository;
+    ItemRepository itemRepository;
     @Mock
-    private UserRepository userRepository;
+    ItemRequestRepository requestRepository;
     @Mock
-    private ItemRepository itemRepository;
+    UserRepository userRepository;
     @InjectMocks
-    private ItemRequestServiceImpl requestService;
-
-    private final User requestor = new User(2L, "user2", "user2@mail.ru");
-    private final User user = new User(1L, "User", "user@mail.ru");
-    private final ItemRequest request = new ItemRequest(1L, "description", requestor, LocalDateTime.now());
-    private final ItemRequest requestSecond = new ItemRequest(2L, "2", user, LocalDateTime.now());
-    private final Item item = new Item(1L, "item", "cool", true, user, request);
-    private final Item itemSecond = new Item(2L, "i2", "2", true, requestor, requestSecond);
+    ItemRequestServiceImpl itemRequestService;
+    User user = new User(
+            1L,
+            "name",
+            "email@email.ru");
+    ItemRequestDtoRQ itemRequestDto = new ItemRequestDtoRQ(
+            1L,
+            1L,
+            "description",
+            LocalDateTime.now());
+    Item item = new Item(
+            1L,
+            "name",
+            "description",
+            true,
+            user,
+            null);
 
     @Test
-    void saveNewRequest() {
-        when(userRepository.findById(2L)).thenReturn(Optional.of(requestor));
-        when(requestRepository.save(any())).thenReturn(request);
+    void create_whenUserFound_thenSaved() {
+        when(userRepository.findById(anyLong())).thenReturn(Optional.ofNullable(user));
+        ItemRequest itemRequest = ItemRequestMapper.toItemRequest(itemRequestDto, user);
+        when(requestRepository.save(any())).thenReturn(itemRequest);
+        ItemRequestDtoRS actual = itemRequestService.create(user.getId(), itemRequestDto);
+        itemRequestDto.setCreated(actual.getCreated());
 
-        final ItemRequestDtoOut actualRequest = requestService.saveNewRequest(
-                new ItemRequestDtoIn("description"), 2L);
-
-        Assertions.assertEquals(ItemRequestMapper.toItemRequestDtoOut(request), actualRequest);
+        verify(requestRepository, Mockito.times(1)).save(any());
     }
 
     @Test
-    void getRequestsByRequestor_whenUserFound_thenSavedRequest() {
-        when(userRepository.findById(2L)).thenReturn(Optional.of(requestor));
-        when(requestRepository.findAllByRequestorId(anyLong(), any())).thenReturn(List.of(request));
-        when(itemRepository.findAllByRequestId(1L)).thenReturn(List.of(item));
-        final ItemRequestDtoOut requestDtoOut = ItemRequestMapper.toItemRequestDtoOut(request);
-        requestDtoOut.setItems(List.of(ItemMapper.toItemDtoOut(item)));
+    void create_whenUserNotFound() {
+        when(userRepository.findById(anyLong())).thenThrow(new NotFoundException("User not found"));
 
-        List<ItemRequestDtoOut> actualRequests = requestService.getRequestsByRequestor(2L);
-
-        Assertions.assertEquals(List.of(requestDtoOut), actualRequests);
+        NotFoundException ex = assertThrows(NotFoundException.class, () -> itemRequestService.create(1L, itemRequestDto));
+        assertEquals("User not found", ex.getMessage());
     }
 
     @Test
-    void getRequestsByRequestor_whenUserNotFound_thenThrownException() {
-        when((userRepository).findById(3L)).thenReturn(Optional.empty());
+    void getRequestsInfo_whenUserFound_thenReturnRequestsList() {
+        when(userRepository.findById(anyLong())).thenReturn(Optional.ofNullable(user));
 
-        Assertions.assertThrows(EntityNotFoundException.class, () ->
-                requestService.getRequestsByRequestor(3L));
+        List<ItemRequestDtoRS> responseList = itemRequestService.getInfo(user.getId());
+        assertTrue(responseList.isEmpty());
+        verify(requestRepository).findAllByRequesterId(anyLong());
     }
 
     @Test
-    void getRequestById() {
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
-        when(requestRepository.findById(anyLong())).thenReturn(Optional.of(request));
-        when(itemRepository.findAllByRequestId(1L)).thenReturn(List.of(item));
-        final ItemRequestDtoOut requestDto = ItemRequestMapper.toItemRequestDtoOut(request);
-        requestDto.setItems(List.of(ItemMapper.toItemDtoOut(item)));
+    void getRequestsInfo_whenUserNotFound() {
+        when(userRepository.findById(anyLong())).thenThrow(new NotFoundException("User not found"));
 
-        ItemRequestDtoOut actualRequest = requestService.getRequestById(1L, 1L);
+        NotFoundException ex = assertThrows(NotFoundException.class, () -> itemRequestService.getInfo(1L));
+        assertEquals("User not found", ex.getMessage());
+    }
 
-        Assertions.assertEquals(requestDto, actualRequest);
+    @Test
+    void getRequestInfo_whenUserAndRequestFound_thenReturnRequestsList() {
+        when(userRepository.findById(anyLong())).thenReturn(Optional.ofNullable(user));
+        ItemRequest itemRequest = ItemRequestMapper.toItemRequest(itemRequestDto, user);
+        when(requestRepository.findById(anyLong())).thenReturn(Optional.of(itemRequest));
+        item.setItemRequest(itemRequest);
+        when(itemRepository.findByItemRequestId(anyLong())).thenReturn(Collections.singletonList(item));
+
+        ItemRequestDtoRS responseRequest = itemRequestService.getInfo(user.getId(), itemRequestDto.getId());
+
+        assertNotNull(responseRequest);
+        verify(requestRepository).findById(anyLong());
+        verify(itemRepository).findByItemRequestId(anyLong());
+    }
+
+    @Test
+    void getRequestInfo_whenRequestNotFound() {
+        when(userRepository.findById(anyLong())).thenReturn(Optional.ofNullable(user));
+        when(requestRepository.findById(anyLong())).thenThrow(new NotFoundException("Request not found"));
+
+        NotFoundException ex = assertThrows(NotFoundException.class, () ->
+                itemRequestService.getInfo(user.getId(), itemRequestDto.getId()));
+        assertEquals("Request not found", ex.getMessage());
+    }
+
+    @Test
+    void getRequestsListTest() {
+        ItemRequest itemRequest = ItemRequestMapper.toItemRequest(itemRequestDto, user);
+        when(requestRepository.findAllPageable(anyLong(), any())).thenReturn(Collections.singletonList(itemRequest));
+
+        List<ItemRequestDtoRS> items = itemRequestService.getRequests(1L, 0, 20);
+        assertEquals(1, items.size());
+        verify(requestRepository).findAllPageable(anyLong(), any());
     }
 }

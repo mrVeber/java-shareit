@@ -8,9 +8,10 @@ import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.DefaultUriBuilderFactory;
 import ru.practicum.shareit.client.BaseClient;
-import ru.practicum.shareit.item.dto.CommentDtoRequest;
-import ru.practicum.shareit.item.dto.ItemDtoRequest;
+import ru.practicum.shareit.item.dto.CommentDto;
+import ru.practicum.shareit.item.dto.ItemDto;
 
+import java.util.Collections;
 import java.util.Map;
 
 @Service
@@ -27,19 +28,7 @@ public class ItemClient extends BaseClient {
         );
     }
 
-    public ResponseEntity<Object> saveNewItem(ItemDtoRequest itemDto, long userId) {
-        return post("", userId, itemDto);
-    }
-
-    public ResponseEntity<Object> updateItem(long itemId, ItemDtoRequest itemDto, long userId) {
-        return patch("/" + itemId, userId, itemDto);
-    }
-
-    public ResponseEntity<Object> getItemById(long itemId, long userId) {
-        return get("/" + itemId, userId);
-    }
-
-    public ResponseEntity<Object> getItemsByOwner(Integer from, Integer size, long userId) {
+    public ResponseEntity<Object> getUserItems(long userId, int from, int size) {
         Map<String, Object> parameters = Map.of(
                 "from", from,
                 "size", size
@@ -47,7 +36,22 @@ public class ItemClient extends BaseClient {
         return get("?from={from}&size={size}", userId, parameters);
     }
 
-    public ResponseEntity<Object> getItemBySearch(Integer from, Integer size, String text, long userId) {
+    public ResponseEntity<Object> getById(long userId, long itemId) {
+        return get("/" + userId, itemId);
+    }
+
+    public ResponseEntity<Object> create(long userId, ItemDto itemDto) {
+        return post("", userId, itemDto);
+    }
+
+    public ResponseEntity<Object> update(long userId, long itemId, ItemDto itemDto) {
+        return patch("/" + itemId, userId, itemDto);
+    }
+
+    public ResponseEntity<Object> search(String text, long userId, int from, int size) {
+        if (text.isBlank()) {
+            return ResponseEntity.status(200).body(Collections.emptyList());
+        }
         Map<String, Object> parameters = Map.of(
                 "text", text,
                 "from", from,
@@ -56,7 +60,7 @@ public class ItemClient extends BaseClient {
         return get("/search?text={text}&from={from}&size={size}", userId, parameters);
     }
 
-    public ResponseEntity<Object> saveNewComment(long itemId, CommentDtoRequest commentDto, long userId) {
-        return post("/" + itemId + "/comment", userId, commentDto);
+    public ResponseEntity<Object> createComment(long userId, long itemId, CommentDto commentDto) {
+        return post("/" + userId + "/comment", itemId, commentDto);
     }
 }

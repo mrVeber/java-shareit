@@ -1,40 +1,51 @@
 package ru.practicum.shareit.item.mapper;
 
 import lombok.experimental.UtilityClass;
-import ru.practicum.shareit.item.dto.ItemDtoIn;
-import ru.practicum.shareit.item.dto.ItemDtoOut;
-import ru.practicum.shareit.item.dto.ItemDtoShort;
+import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.item.dto.ItemDtoBooking;
 import ru.practicum.shareit.item.model.Item;
-import ru.practicum.shareit.user.mapper.UserMapper;
+import ru.practicum.shareit.request.model.ItemRequest;
+import ru.practicum.shareit.user.model.User;
+
+import java.util.ArrayList;
 
 @UtilityClass
 public class ItemMapper {
-    public ItemDtoOut toItemDtoOut(Item item) {
-        ItemDtoOut itemDtoOut = new ItemDtoOut(
-                item.getId(),
+    public ItemDto toItemDto(Item item) {
+        Long requestId = null;
+
+        if (item.getItemRequest() != null) {
+            requestId = item.getItemRequest().getId();
+        }
+
+        return ItemDto.builder()
+                .id(item.getId())
+                .name(item.getName())
+                .description(item.getDescription())
+                .available(item.getAvailable())
+                .requestId(requestId)
+                .build();
+    }
+
+    public Item toItem(ItemDto itemDto, User user, ItemRequest itemRequest) {
+        return Item.builder()
+                .id(itemDto.getId())
+                .name(itemDto.getName())
+                .description(itemDto.getDescription())
+                .owner(user)
+                .itemRequest(itemRequest)
+                .available(itemDto.getAvailable())
+                .build();
+    }
+
+    public ItemDtoBooking toItemDtoBooking(Item item) {
+        return new ItemDtoBooking(item.getId(),
                 item.getName(),
                 item.getDescription(),
                 item.getAvailable(),
-                UserMapper.toUserDtoShort(item.getOwner())
-        );
-        if (item.getRequest() != null) {
-            itemDtoOut.setRequestId(item.getRequest().getId());
-        }
-        return itemDtoOut;
-    }
-
-    public ItemDtoShort toItemDtoShort(Item item) {
-        return new ItemDtoShort(
-                item.getId(),
-                item.getName()
-        );
-    }
-
-    public Item toItem(ItemDtoIn itemDtoIn) {
-        return new Item(
-                itemDtoIn.getName(),
-                itemDtoIn.getDescription(),
-                itemDtoIn.getAvailable()
+                null,
+                null,
+                new ArrayList<>()
         );
     }
 }

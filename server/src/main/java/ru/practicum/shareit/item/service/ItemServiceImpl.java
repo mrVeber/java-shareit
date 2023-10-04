@@ -1,25 +1,22 @@
 package ru.practicum.shareit.item.service;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import ru.practicum.shareit.booking.repository.BookingRepository;
 import ru.practicum.shareit.booking.mapper.BookingMapper;
-import ru.practicum.shareit.booking.model.Booking;
-import ru.practicum.shareit.booking.model.BookingStatus;
-import ru.practicum.shareit.exception.model.*;
+import ru.practicum.shareit.booking.dto.BookingDtoResponse;
+import ru.practicum.shareit.booking.repository.BookingRepository;
+import ru.practicum.shareit.exception.model.BadRequestException;
+import ru.practicum.shareit.exception.model.NotFoundException;
 import ru.practicum.shareit.item.model.Comment;
-import ru.practicum.shareit.item.model.Item;
-import ru.practicum.shareit.item.repository.CommentRepository;
-import ru.practicum.shareit.item.dto.CommentDtoIn;
-import ru.practicum.shareit.item.dto.CommentDtoOut;
 import ru.practicum.shareit.item.mapper.CommentMapper;
-import ru.practicum.shareit.item.dto.ItemDtoIn;
-import ru.practicum.shareit.item.dto.ItemDtoOut;
+import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.mapper.ItemMapper;
+import ru.practicum.shareit.item.dto.CommentDto;
+import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.item.dto.ItemDtoBooking;
+import ru.practicum.shareit.item.repository.CommentRepository;
 import ru.practicum.shareit.item.repository.ItemRepository;
 import ru.practicum.shareit.request.model.ItemRequest;
 import ru.practicum.shareit.request.repository.ItemRequestRepository;
@@ -27,178 +24,135 @@ import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.repository.UserRepository;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toList;
-import static org.springframework.data.domain.Sort.Direction.ASC;
 import static org.springframework.data.domain.Sort.Direction.DESC;
 
-
-@Slf4j
-@Transactional
 @Service
 @RequiredArgsConstructor
 public class ItemServiceImpl implements ItemService {
+    private static final Sort SORT_START_DESC = Sort.by(DESC, "start");
     private final ItemRepository itemRepository;
+    private final ItemRequestRepository itemRequestRepository;
     private final UserRepository userRepository;
-    private final BookingRepository bookingRepository;
     private final CommentRepository commentRepository;
-    private final ItemRequestRepository requestRepository;
+    private final BookingRepository bookingRepository;
 
-    public ItemDtoOut saveNewItem(ItemDtoIn itemDtoIn, long userId) {
-        log.info("Создание новой вещи {}", itemDtoIn.getName());
-        User owner = getUser(userId);
-        Item item = ItemMapper.toItem(itemDtoIn);
-        item.setOwner(owner);
-        Long requestId = itemDtoIn.getRequestId();
-        if (requestId != null) {
-            item.setRequest(requestRepository.findById(requestId).orElseThrow(() ->
-                    new EntityNotFoundException(String.format("Объект класса %s не найден", ItemRequest.class))));
-        }
-        return ItemMapper.toItemDtoOut(itemRepository.save(item));
+    @Override
+    public List<ItemDtoBooking> getUserItems(long userId, Pageable pageable) {
+        List<Item> userItems = itemRepository.findAllByOwnerIdOrderByIdAsc(userId, pageable);
+        return setAllBookingsAndComments(userId, userItems);
     }
 
-    public ItemDtoOut updateItem(long itemId, ItemDtoIn itemDtoIn, long userId) {
-        log.info("Обновление вещи {} с идентификатором {}", itemDtoIn.getName(), itemId);
-        getUser(userId);
-        Item item = getItem(itemId);
-        String name = itemDtoIn.getName();
-        String description = itemDtoIn.getDescription();
-        Boolean available = itemDtoIn.getAvailable();
-        if (item.getOwner().getId() == userId) {
-            if (name != null && !name.isBlank()) {
-                item.setName(name);
+    @Override
+    public ItemDtoBooking getById(long itemId, long userId) {
+        Item item = itemRepository.findById(itemId).orElseThrow(()
+                -> new NotFoundException("Item with id = " + itemId + " not found"));
+        return setAllBookingsAndComments(userId, Collections.singletonList(item)).get(0);
+    }
+
+    @Override
+    public ItemDto create(long userId, ItemDto itemDto) {
+
+        User user = userRepository.findById(userId).orElseThrow(() -> {
+            throw new NotFoundException("User not found");
+        });
+
+        ItemRequest itemRequest = null;
+        if (itemDto.getRequestId() != null) {
+            itemRequest = itemRequestRepository.findById(itemDto.getRequestId()).orElseThrow(() ->
+                    new NotFoundException("Request not found"));
+        }
+        Item item = itemRepository.save(ItemMapper.toItem(itemDto, user, itemRequest));
+        itemDto.setId(item.getId());
+        return itemDto;
+    }
+
+    @Override
+    public ItemDto update(long itemId, ItemDto itemDto, long ownerId) {
+        Item item = itemRepository.findById(itemId).orElseThrow(() -> {
+            throw new NotFoundException("Item not found for update");
+        });
+        if (item.getOwner().getId() == ownerId) {
+            if ((itemDto.getName() != null) && (!item.getName().isBlank())) {
+                item.setName(itemDto.getName());
             }
-            if (description != null && !description.isBlank()) {
-                item.setDescription(description);
+            if ((itemDto.getDescription() != null) && (!item.getDescription().isBlank())) {
+                item.setDescription(itemDto.getDescription());
             }
-            if (available != null) {
-                item.setAvailable(available);
+            if (itemDto.getAvailable() != null) {
+                item.setAvailable(itemDto.getAvailable());
             }
+            itemRepository.save(item);
         } else {
-            throw new NotOwnerException(String.format("Пользователь с id %s не является собственником %s",
-                    userId, name));
+            throw new NotFoundException("Item not found for update");
         }
-        return ItemMapper.toItemDtoOut(item);
+        return ItemMapper.toItemDto(item);
     }
 
-    @Transactional(readOnly = true)
-    public ItemDtoOut getItemById(long itemId, long userId) {
-        log.info("Получение вещи по идентификатору {}", itemId);
-        final Item item = getItem(itemId);
-        return addBookingsAndComments(item, userId);
+    @Override
+    public CommentDto createComment(long itemId, CommentDto commentDto, long authorId) {
+
+        Item item = itemRepository.findById(itemId).orElseThrow(()
+                -> new NotFoundException("Item with id = " + itemId + " not found"));
+        User user = userRepository.findById(authorId).orElseThrow(()
+                -> new NotFoundException("User with id = " + authorId + " not found"));
+
+        Comment comment = CommentMapper.toComment(user, item, commentDto);
+
+        if (!bookingRepository.findByBookerIdAndItemIdAndEndBefore(
+                authorId,
+                itemId,
+                LocalDateTime.now(),
+                SORT_START_DESC).isEmpty()) {
+            comment.setItem(item);
+            comment.setAuthorId(user);
+            comment.setCreated(LocalDateTime.now());
+            commentRepository.save(comment);
+            return CommentMapper.toCommentDto(comment);
+        } else throw new BadRequestException("This User can not send comment to this Item");
     }
 
-    @Transactional(readOnly = true)
-    public List<ItemDtoOut> getItemsByOwner(Integer from, Integer size, long userId) {
-        log.info("Получение вещи по владельцу {}", userId);
-        getUser(userId);
-        List<Item> items = itemRepository.findAllByOwnerId(userId, PageRequest.of(from / size, size,
-                Sort.by("id").ascending()));
-        return addBookingsAndCommentsForList(items);
-    }
-
-    @Transactional(readOnly = true)
-    public List<ItemDtoOut> getItemBySearch(Integer from, Integer size, String text) {
-        log.info("Получение вещи по поиску {}", text);
-        if (text.isBlank()) {
-            return Collections.emptyList();
-        }
-        return itemRepository.search(text, PageRequest.of(from / size, size)).stream()
-                .map(ItemMapper::toItemDtoOut).collect(toList());
-    }
-
-    public CommentDtoOut saveNewComment(long itemId, CommentDtoIn commentDtoIn, long userId) {
-        if (!bookingRepository.existsByBookerIdAndItemIdAndEndBefore(userId, itemId, LocalDateTime.now())) {
-            throw new NotBookerException("Пользователь не пользовался вещью");
-        }
-        User user = getUser(userId);
-        Item item = getItem(itemId);
-        Comment comment = commentRepository.save(CommentMapper.toComment(commentDtoIn, item, user));
-        return CommentMapper.toCommentDtoOut(comment);
-    }
-
-    private ItemDtoOut addBookingsAndComments(Item item, long userId) {
-        ItemDtoOut itemDtoOut = ItemMapper.toItemDtoOut(item);
-
-        LocalDateTime thisMoment = LocalDateTime.now();
-        if (itemDtoOut.getOwner().getId() == userId) {
-            itemDtoOut.setLastBooking(bookingRepository
-                    .findFirstByItemIdAndStartLessThanEqualAndStatus(itemDtoOut.getId(), thisMoment,
-                            BookingStatus.APPROVED, Sort.by(DESC, "end"))
-                    .map(BookingMapper::toBookingDtoShort)
-                    .orElse(null));
-
-            itemDtoOut.setNextBooking(bookingRepository
-                    .findFirstByItemIdAndStartAfterAndStatus(itemDtoOut.getId(), thisMoment,
-                            BookingStatus.APPROVED, Sort.by(ASC, "end"))
-                    .map(BookingMapper::toBookingDtoShort)
-                    .orElse(null));
-        }
-
-        itemDtoOut.setComments(commentRepository.findAllByItemId(itemDtoOut.getId())
+    @Override
+    public List<ItemDto> search(String text, Pageable pageable) {
+        return itemRepository.searchByText(text.toLowerCase(), pageable)
                 .stream()
-                .map(CommentMapper::toCommentDtoOut)
-                .collect(toList()));
-
-        return itemDtoOut;
+                .map(ItemMapper::toItemDto)
+                .collect(Collectors.toList());
     }
 
-    private List<ItemDtoOut> addBookingsAndCommentsForList(List<Item> items) {
-        LocalDateTime thisMoment = LocalDateTime.now();
-
-        Map<Item, Booking> itemsWithLastBookings = bookingRepository
-                .findByItemInAndStartLessThanEqualAndStatus(items, thisMoment,
-                        BookingStatus.APPROVED, Sort.by(DESC, "end"))
-                .stream()
-                .collect(Collectors.toMap(Booking::getItem, Function.identity(), (o1, o2) -> o1));
-
-        Map<Item, Booking> itemsWithNextBookings = bookingRepository
-                .findByItemInAndStartAfterAndStatus(items, thisMoment,
-                        BookingStatus.APPROVED, Sort.by(ASC, "end"))
-                .stream()
-                .collect(Collectors.toMap(Booking::getItem, Function.identity(), (o1, o2) -> o1));
-
-        Map<Item, List<Comment>> itemsWithComments = commentRepository
-                .findByItemIn(items, Sort.by(DESC, "created"))
-                .stream()
-                .collect(groupingBy(Comment::getItem, toList()));
-
-        List<ItemDtoOut> itemDtoOuts = new ArrayList<>();
-        for (Item item : items) {
-            ItemDtoOut itemDtoOut = ItemMapper.toItemDtoOut(item);
-            Booking lastBooking = itemsWithLastBookings.get(item);
-            if (itemsWithLastBookings.size() > 0 && lastBooking != null) {
-                itemDtoOut.setLastBooking(BookingMapper.toBookingDtoShort(lastBooking));
-            }
-            Booking nextBooking = itemsWithNextBookings.get(item);
-            if (itemsWithNextBookings.size() > 0 && nextBooking != null) {
-                itemDtoOut.setNextBooking(BookingMapper.toBookingDtoShort(nextBooking));
-            }
-            List<CommentDtoOut> commentDtoOuts = itemsWithComments.getOrDefault(item, Collections.emptyList())
-                    .stream()
-                    .map(CommentMapper::toCommentDtoOut)
-                    .collect(toList());
-            itemDtoOut.setComments(commentDtoOuts);
-
-            itemDtoOuts.add(itemDtoOut);
-        }
-        return itemDtoOuts;
+    @Override
+    public void delete(long id) {
+        itemRepository.deleteById(id);
     }
 
-    private User getUser(long userId) {
-        return userRepository.findById(userId).orElseThrow(() ->
-                new EntityNotFoundException(String.format("Объект класса %s не найден", User.class)));
-    }
-
-    private Item getItem(long itemId) {
-        return itemRepository.findById(itemId).orElseThrow(() ->
-                new EntityNotFoundException(String.format("Объект класса %s не найден", Item.class)));
+    private List<ItemDtoBooking> setAllBookingsAndComments(long userId, List<Item> items) {
+        LocalDateTime now = LocalDateTime.now();
+        List<Long> ids = items.stream()
+                .map(Item::getId)
+                .collect(Collectors.toList());
+        Map<Long, BookingDtoResponse> last = bookingRepository.findBookingsLast(ids, now, userId, SORT_START_DESC).stream()
+                .map(BookingMapper::toBookingDtoResponse)
+                .collect(Collectors.toMap(BookingDtoResponse::getItemId, item -> item, (a, b) -> a));
+        Map<Long, BookingDtoResponse> next = bookingRepository.findBookingsNext(ids, now, userId, SORT_START_DESC).stream()
+                .map(BookingMapper::toBookingDtoResponse)
+                .collect(Collectors.toMap(BookingDtoResponse::getItemId, item -> item, (a, b) -> b));
+        List<ItemDtoBooking> result = items.stream()
+                .map(ItemMapper::toItemDtoBooking)
+                .collect(toList());
+        Map<Long, List<Comment>> comments = commentRepository.findByItemId_IdIn(ids).stream()
+                .collect(groupingBy(comment -> comment.getItem().getId()));
+        result.forEach(item -> {
+            item.setLastBooking(last.get(item.getId()));
+            item.setNextBooking(next.get(item.getId()));
+            item.getComments().addAll(comments.getOrDefault(item.getId(), List.of()).stream()
+                    .map(CommentMapper::toCommentDto).collect(toList()));
+        });
+        return result;
     }
 }

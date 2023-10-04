@@ -1,40 +1,49 @@
 package ru.practicum.shareit.user.controller;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import ru.practicum.shareit.user.mapper.UserMapper;
 import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.service.UserService;
 
 import java.util.List;
 
-@RequiredArgsConstructor
+@Slf4j
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/users")
 public class UserController {
     private final UserService userService;
 
-    @GetMapping
-    public List<UserDto> getAllUsers() {
-        return userService.getAllUsers();
-    }
-
-    @GetMapping("/{userId}")
-    public UserDto getUserById(@PathVariable long userId) {
-        return userService.getUserById(userId);
-    }
-
     @PostMapping
-    public UserDto saveNewUser(@RequestBody UserDto userDto) {
-        return userService.saveNewUser(userDto);
+    public UserDto create(
+            @RequestBody UserDto userDto) {
+        return userService.create(UserMapper.toUser(userDto));
     }
 
-    @PatchMapping("/{userId}")
-    public UserDto updateUser(@PathVariable long userId, @RequestBody UserDto userDto) {
-        return userService.updateUser(userId, userDto);
+    @PatchMapping("/{id}")
+    public UserDto put(
+            @PathVariable Long id,
+            @RequestBody UserDto userDto) {
+        return userService.update(id, UserMapper.toUser(userDto));
     }
 
-    @DeleteMapping("/{userId}")
-    public void deleteUser(@PathVariable long userId) {
-        userService.deleteUser(userId);
+    @GetMapping
+    public List<UserDto> get() {
+        return userService.get();
+    }
+
+    @GetMapping("/{id}")
+    public UserDto get(
+            @PathVariable Long id) {
+        return userService.get(id);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Object> delete(
+            @PathVariable Long id) {
+        return userService.delete(id);
     }
 }

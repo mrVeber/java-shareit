@@ -1,94 +1,121 @@
 package ru.practicum.shareit.user.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import ru.practicum.shareit.user.dto.UserDto;
-import ru.practicum.shareit.user.service.UserServiceImpl;
+import ru.practicum.shareit.exception.model.NotFoundException;
+import ru.practicum.shareit.user.service.UserService;
 
-import java.nio.charset.StandardCharsets;
-import java.util.List;
+import java.util.Collections;
+import java.util.Objects;
 
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.is;
-import static org.mockito.ArgumentMatchers.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static ru.practicum.shareit.resource.UserData.*;
 
 @WebMvcTest(controllers = UserController.class)
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 class UserControllerTest {
-
+    private final ObjectMapper objectMapper;
+    private final MockMvc mvc;
     @MockBean
-    private UserServiceImpl userService;
-
-    @Autowired
-    private ObjectMapper mapper;
-
-    @Autowired
-    private MockMvc mvc;
-
-    private final UserDto userDto = new UserDto(1L, "User", "user@mail.ru");
-    private final UserDto userNoEmail = new UserDto(1L, "User", "");
+    UserService userService;
 
     @Test
-    void getAllUsers() throws Exception {
-        when(userService.getAllUsers()).thenReturn(List.of(userDto));
+    void getAllTest() throws Exception {
+        when(userService.get()).thenReturn(Collections.singletonList(getUserDto()));
 
-        mvc.perform(get("/users"))
+        mvc.perform(get("/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].id", is(userDto.getId()), Long.class))
-                .andExpect(jsonPath("$[0].name", is(userDto.getName())))
-                .andExpect(jsonPath("$[0].email", is(userDto.getEmail())));
+                .andExpect(jsonPath("$[0].id").value(1L))
+                .andExpect(jsonPath("$[0].name").value("test_nazar"))
+                .andExpect(jsonPath("$[0].email").value("test_nazar@mail.ru"));
     }
 
     @Test
-    void getUserById() throws Exception {
-        when(userService.getUserById(anyInt())).thenReturn(userDto);
+    void getByIdTest() throws Exception {
+        when(userService.get(1L)).thenReturn(getUserDto());
 
-        mvc.perform(get("/users/1"))
-                .andExpect(status().isOk());
+        mvc.perform(get("/users/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1L))
+                .andExpect(jsonPath("$.name").value("test_nazar"))
+                .andExpect(jsonPath("$.email").value("test_nazar@mail.ru"));
     }
 
     @Test
-    void saveNewUser() throws Exception {
-        when(userService.saveNewUser(any())).thenReturn(userDto);
+    void getById_whenNotFound() throws Exception {
+        when(userService.get(2L)).thenThrow(new NotFoundException("User with id = 2  not found"));
+
+        mvc.perform(get("/users/2")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound())
+                .andExpect(result -> assertTrue(result.getResolvedException() instanceof NotFoundException))
+                .andExpect(result -> assertEquals("User with id = 2  not found",
+                        Objects.requireNonNull(result.getResolvedException()).getMessage()));
+    }
+
+    @Test
+    void createTest() throws Exception {
+        when(userService.create(getUser())).thenReturn(getUserDto());
 
         mvc.perform(post("/users")
-                        .content(mapper.writeValueAsString(userDto))
-                        .characterEncoding(StandardCharsets.UTF_8)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .accept(MediaType.APPLICATION_JSON))
+                        .accept(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(getUserDto())))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id", is(userDto.getId()), Long.class))
-                .andExpect(jsonPath("$.name", is(userDto.getName()), String.class))
-                .andExpect(jsonPath("$.email", is(userDto.getEmail()), String.class));
+                .andExpect(jsonPath("$.id").value(1L))
+                .andExpect(jsonPath("$.name").value("test_nazar"))
+                .andExpect(jsonPath("$.email").value("test_nazar@mail.ru"));
     }
 
     @Test
-    void updateUser() throws Exception {
-        when(userService.updateUser(anyInt(), any())).thenReturn(userDto);
+    void updateTest() throws Exception {
+        when(userService.update(1L, getUpdateUser())).thenReturn(getUpdateDtoUser());
 
-        mvc.perform(patch("/users/1", userDto.getId())
-                        .content(mapper.writeValueAsString(userDto))
-                        .characterEncoding(StandardCharsets.UTF_8)
+        mvc.perform(patch("/users/1").content(objectMapper.writeValueAsString(getUpdateUser()))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk());
+                        .accept(MediaType.APPLICATION_JSON)
+                        .header("X-Sharer-User-Id", 1L))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1L))
+                .andExpect(jsonPath("$.name").value("test_updated"))
+                .andExpect(jsonPath("$.email").value("updated@mail.ru"));
     }
 
     @Test
-    void deleteUser() throws Exception {
-        mvc.perform(delete("/users/100"))
+    void update_whenNotFoundTest() throws Exception {
+        when(userService.update(1L, getUser()))
+                .thenThrow(new NotFoundException("test not found ok"));
+
+        mvc.perform(patch("/users/1")
+                        .content(objectMapper.writeValueAsString(getUpdateDtoUser()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON)
+                        .header("X-Sharer-User-Id", 1L))
+                .andExpect(status().isNotFound())
+                .andExpect(result -> assertTrue(result.getResolvedException() instanceof NotFoundException))
+                .andExpect(result -> assertEquals("test not found ok",
+                        Objects.requireNonNull(result.getResolvedException()).getMessage()));
+    }
+
+    @Test
+    void deleteTest() throws Exception {
+        mvc.perform(delete("/users/1"))
                 .andExpect(status().isOk());
-        Mockito.verify(userService, Mockito.times(1))
-                .deleteUser(anyLong());
     }
 }

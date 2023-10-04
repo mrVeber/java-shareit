@@ -8,7 +8,7 @@ import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.DefaultUriBuilderFactory;
 import ru.practicum.shareit.client.BaseClient;
-import ru.practicum.shareit.request.dto.ItemRequestDtoRequest;
+import ru.practicum.shareit.request.dto.ItemRequestDtoRQ;
 
 import java.util.Map;
 
@@ -26,23 +26,23 @@ public class ItemRequestClient extends BaseClient {
         );
     }
 
-    public ResponseEntity<Object> saveNewRequest(ItemRequestDtoRequest requestDto, long userId) {
-        return post("", userId, requestDto);
+    public ResponseEntity<Object> create(long userId, ItemRequestDtoRQ itemRequestDtoRQ) {
+        return post("", userId, itemRequestDtoRQ);
     }
 
-    public ResponseEntity<Object> getRequestsByRequestor(long userId) {
+    public ResponseEntity<Object> getInfo(long userId) {
         return get("", userId);
     }
 
-    public ResponseEntity<Object> getAllRequests(Integer from, Integer size, long userId) {
+    public ResponseEntity<Object> getInfo(long userId, long requestId) {
+        return get("/" + requestId, userId);
+    }
+
+    public ResponseEntity<Object> getRequestsList(long userId, int from, int size) {
         Map<String, Object> parameters = Map.of(
                 "from", from,
                 "size", size
         );
         return get("/all?from={from}&size={size}", userId, parameters);
-    }
-
-    public ResponseEntity<Object> getRequestById(long requestId, long userId) {
-        return get("/" + requestId, userId);
     }
 }
