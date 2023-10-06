@@ -12,6 +12,8 @@ import ru.practicum.shareit.validators.Create;
 import javax.validation.constraints.Positive;
 import javax.validation.constraints.PositiveOrZero;
 
+import static ru.practicum.shareit.utils.Constant.USER_ID_HEADER;
+
 @Slf4j
 @Controller
 @Validated
@@ -22,7 +24,7 @@ public class BookingController {
 
     @PostMapping
     public ResponseEntity<Object> create(
-            @RequestHeader(name = "X-Sharer-User-Id") long userId,
+            @RequestHeader(name = USER_ID_HEADER) long userId,
             @Validated({Create.class}) @RequestBody BookingDtoCreate bookingDtoCreate) {
         log.info("Received a request to add a booking");
         return bookingClient.create(userId, bookingDtoCreate);
@@ -32,7 +34,7 @@ public class BookingController {
     public ResponseEntity<Object> update(
             @PathVariable long bookingId,
             @RequestParam boolean approved,
-            @RequestHeader(name = "X-Sharer-User-Id") long ownerId) {
+            @RequestHeader(name = USER_ID_HEADER) long ownerId) {
         log.info("Received a request to update the booking");
         return bookingClient.update(ownerId, bookingId, approved);
     }
@@ -40,7 +42,7 @@ public class BookingController {
     @GetMapping("/{bookingId}")
     public ResponseEntity<Object> get(
             @PathVariable long bookingId,
-            @RequestHeader(name = "X-Sharer-User-Id") long ownerId) {
+            @RequestHeader(name = USER_ID_HEADER) long ownerId) {
         log.info("Received a request to get booking with id {}", bookingId);
         return bookingClient.get(bookingId, ownerId);
     }
@@ -48,7 +50,7 @@ public class BookingController {
     @GetMapping
     public ResponseEntity<Object> getBookings(
             @RequestParam(defaultValue = "ALL") String state,
-            @RequestHeader(name = "X-Sharer-User-Id") long ownerId,
+            @RequestHeader(name = USER_ID_HEADER) long ownerId,
             @PositiveOrZero @RequestParam(defaultValue = "0") int from,
             @Positive @RequestParam(defaultValue = "20") int size) {
         log.info("Received a request to get bookings with state {}", state);
@@ -58,7 +60,7 @@ public class BookingController {
     @GetMapping("/owner")
     public ResponseEntity<Object> getBookingFromOwner(
             @RequestParam(defaultValue = "ALL") String state,
-            @RequestHeader(name = "X-Sharer-User-Id") long ownerId,
+            @RequestHeader(name = USER_ID_HEADER) long ownerId,
             @PositiveOrZero @RequestParam(defaultValue = "0") int from,
             @Positive @RequestParam(defaultValue = "20") int size) {
         log.info("Received a request to get bookings with state {}", state);

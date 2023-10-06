@@ -16,7 +16,7 @@ public class ItemRequestDtoRQ {
     private Long id;
     private Long requesterId;
     @NotBlank(groups = Create.class)
-    @Size(groups = Create.class, min = 1, max = 200)
+    @Size(groups = Create.class, max = 256)
     private String description;
     private LocalDateTime created;
 }

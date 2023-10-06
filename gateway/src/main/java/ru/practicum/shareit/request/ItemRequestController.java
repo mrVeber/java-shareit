@@ -12,6 +12,8 @@ import ru.practicum.shareit.request.dto.ItemRequestDtoRQ;
 import javax.validation.constraints.Positive;
 import javax.validation.constraints.PositiveOrZero;
 
+import static ru.practicum.shareit.utils.Constant.USER_ID_HEADER;
+
 @Slf4j
 @Validated
 @Controller
@@ -22,27 +24,27 @@ public class ItemRequestController {
 
     @PostMapping
     public ResponseEntity<Object> create(
-            @RequestHeader("X-Sharer-User-Id") long userId,
+            @RequestHeader(USER_ID_HEADER) long userId,
             @Validated(Create.class) @RequestBody ItemRequestDtoRQ itemRequestDtoRQ) {
         return itemRequestClient.create(userId, itemRequestDtoRQ);
     }
 
     @GetMapping
     public ResponseEntity<Object> getRequestsInfo(
-            @RequestHeader("X-Sharer-User-Id") long userId) {
+            @RequestHeader(USER_ID_HEADER) long userId) {
         return itemRequestClient.getInfo(userId);
     }
 
     @GetMapping("/{requestId}")
     public ResponseEntity<Object> getRequestInfo(
-            @RequestHeader("X-Sharer-User-Id") long userId,
+            @RequestHeader(USER_ID_HEADER) long userId,
             @PathVariable long requestId) {
         return itemRequestClient.getInfo(userId, requestId);
     }
 
     @GetMapping("/all")
     public ResponseEntity<Object> getRequestsList(
-            @RequestHeader("X-Sharer-User-Id") long userId,
+            @RequestHeader(USER_ID_HEADER) long userId,
             @PositiveOrZero @RequestParam(defaultValue = "0") int from,
             @Positive @RequestParam(defaultValue = "10") int size) {
         return itemRequestClient.getRequestsList(userId, from, size);
