@@ -50,7 +50,7 @@ public class ItemClient extends BaseClient {
 
     public ResponseEntity<Object> search(String text, long userId, int from, int size) {
         if (text.isBlank()) {
-            return ResponseEntity.status(200).body(Collections.emptyList());
+            return ResponseEntity.ok(Collections.emptyList());
         }
         Map<String, Object> parameters = Map.of(
                 "text", text,
